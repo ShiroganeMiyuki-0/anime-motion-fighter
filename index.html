@@ -376,7 +376,7 @@ if(devicePixelRatio>1)R.setPixelRatio(Math.min(devicePixelRatio,1.5));
 /* ═══════ LIGHTS ═══════ */
 // Theme-based ambient light
 const ambientColors={0:0x1a2233,1:0x2a1515,2:0x1a2233,3:0x1a2a1a,4:0x15152a};
-S.add(new THREE.AmbientLight(ambientColors[currentArena]||0x1a2233,0.8));
+S.add(new THREE.AmbientLight(ambientColors[currentArena]||0x1a2233,0.85));
 const sun=new THREE.DirectionalLight(0xffeedd,1.4);sun.position.set(6,18,10);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-16;sun.shadow.camera.right=16;sun.shadow.camera.top=16;sun.shadow.camera.bottom=-16;S.add(sun);
 S.add(new THREE.DirectionalLight(0x38bdf8,0.3).translateX(-10).translateY(8).translateZ(-6));
 S.add(new THREE.PointLight(0xfb7185,0.2,30).translateX(10).translateY(5).translateZ(6));
