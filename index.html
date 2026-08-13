@@ -1181,7 +1181,11 @@ const G={mode:'local',running:false,paused:false,round:1,p1w:0,p2w:0,timer:RNDT,
     [this.p1,this.p2].forEach(f=>{if(Math.abs(f.pos.x)>=W/2-0.7&&Math.abs(f.vel.x)>5){f.vel.x*=-0.6;f.hitStun=Math.max(f.hitStun,0.15);camSh=0.15;spawnHitFX({x:f.pos.x,y:f.pos.y+1.5,z:0},0xffffff,'punch');log('WALL BOUNCE!')}});
     updateProjectiles(fdt);
     if(this.p1.hp<=0||this.p2.hp<=0){this._endR();return}
-    animFighter(this.p1,fdt);animFighter(this.p2,fdt);updateCam(this.p1,this.p2,fdt);updateVFX(fdt);updateEnv(fdt);updateHUD(this.p1,this.p2);document.getElementById("rageOv").classList.toggle("on",this.p1.rageMode);showCombo(Math.max(this.p1.combo,this.p2.combo));if(Tutorial.active)Tutorial.update(this.p1,fdt);
+    animFighter(this.p1,fdt);animFighter(this.p2,fdt);updateCam(this.p1,this.p2,fdt);updateVFX(fdt);updateEnv(fdt);updateHUD(this.p1,this.p2);document.getElementById("rageOv").classList.toggle("on",this.p1.rageMode);showCombo(Math.max(this.p1.combo,this.p2.combo));if(Tutorial.active){
+    Tutorial.update(this.p1,fdt);
+    // Dummy regenerates HP in training
+    if(this.mode==='tutorial'&&this.p2.hp<99999)this.p2.hp=99999;
+  };
     const big=(this.p1.attacking&&(this.p1.atkType==='special'||this.p1.atkType==='ultimate'))||(this.p2.attacking&&(this.p2.atkType==='special'||this.p2.atkType==='ultimate'));bloom.strength=big?0.9:slowMo>0?0.7:0.5;comp.render()},
   _endR(){this.running=false;this.koTime=1;const w=this.p1.hp>this.p2.hp?1:2;if(w===1)this.p1w++;else this.p2w++;updateWD();SFX.ko();SFX.call('K.O.!');camSh=0.65;document.getElementById('koO').classList.add('on');document.getElementById('hF').style.background=color===0xffffff?'#fff':'rgba(255,255,255,0.8)';document.getElementById('hF').classList.add('on');setTimeout(()=>document.getElementById('hF').classList.remove('on'),80);updateCam(this.p1,this.p2,0.016);comp.render();const winner=w===1?this.p1:this.p2;if(winner.perfectRound){showGrade('S+');log('★ PERFECT ROUND ★')}
     // Track stats
