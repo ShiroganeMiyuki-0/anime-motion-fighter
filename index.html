@@ -413,7 +413,7 @@ let currentArena=0;
 
 function buildArena(){
   const T=ARENA_THEMES[currentArena];
-  const f=new THREE.Mesh(new THREE.PlaneGeometry(W+14,D+14),new THREE.MeshStandardMaterial({color:T.floor,roughness:0.1,metalness:0.9}));f.rotation.x=-Math.PI/2;f.receiveShadow=true;S.add(f);
+  const f=new THREE.Mesh(new THREE.PlaneGeometry(W+14,D+14),new THREE.MeshStandardMaterial({color:T.floor,roughness:0.05,metalness:0.95,envMapIntensity:0.5}));f.rotation.x=-Math.PI/2;f.receiveShadow=true;S.add(f);
   S.add(new THREE.GridHelper(W,28,T.grid,T.grid).translateY(0.01));
   const pts=[[-W/2,0.04,-D/2],[W/2,0.04,-D/2],[W/2,0.04,D/2],[-W/2,0.04,D/2],[-W/2,0.04,-D/2]].map(p=>new THREE.Vector3(...p));
   // Animated border
