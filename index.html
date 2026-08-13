@@ -881,7 +881,7 @@ function updateFighter(f,dt){
   // Mana regen
   if(f.mana<MAX_MANA)f.mana=Math.min(MAX_MANA,f.mana+(f.cls==='mage'?8:f.cls==='hybrid'?5:3)*dt);
   // Rage mode: at <20% HP, boost damage and Ki regen
-  if(f.hp<MHP*0.2&&!f.rageMode){f.rageMode=true;f.J.aura.material.opacity=0.2;log(`${f.ch.name} entered RAGE MODE!`);showSt('🔥 RAGE MODE');SFX.rage()}}
+  if(f.hp<MHP*0.2&&!f.rageMode){f.rageMode=true;f.J.aura.material.opacity=0.2;log(`${f.ch.name} entered RAGE MODE!`);showSt('🔥 RAGE MODE');SFX.rage();showGrade('RAGE')}}
   if(f.hp>=MHP*0.2&&f.rageMode){f.rageMode=false}
   const rageMult=f.rageMode?1.25:1;
   if(f.rageMode){f.ki=Math.min(MKI,f.ki+8*dt);f.J.aura.material.opacity=0.15+Math.sin(f.animT*6)*0.1;f.parts?.torso?.material?.emissiveIntensity&&(f.parts.torso.material.emissiveIntensity=0.1+Math.sin(f.animT*8)*0.05)}
