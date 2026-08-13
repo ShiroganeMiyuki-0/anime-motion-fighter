@@ -706,7 +706,61 @@ function updateProjectiles(dt){
             camSh=0.5;bloom.strength=1.0;setTimeout(()=>bloom.strength=0.5,300);
             // Remove both projectiles
             S.remove(p.mesh);S.remove(other.mesh);
-            p.life=0;other.life=0;
+            p.life=0}
+
+    // Spell combo: lightning + wind = thunderstorm
+    if(p.spellId==='lightning'||p.spellId==='windSlash'){
+      projectiles.forEach(other=>{
+        if(other!==p&&other.owner===p.owner){
+          const comboPair=p.spellId==='lightning'&&other.spellId==='windSlash'||p.spellId==='windSlash'&&other.spellId==='lightning';
+          if(comboPair){
+            const d=p.mesh.position.distanceTo(other.mesh.position);
+            if(d<3){
+              const mid={x:(p.mesh.position.x+other.mesh.position.x)/2,y:5,z:0};
+              // Thunderstorm effect
+              for(let k=0;k<20;k++){
+                const bolt=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,3+Math.random()*4,4),new THREE.MeshBasicMaterial({color:0xffff00,transparent:true}));
+                bolt.position.set(mid.x+(Math.random()-0.5)*6,mid.y,mid.z+(Math.random()-0.5)*4);
+                S.add(bolt);vfxA.push({m:bolt,v:new THREE.Vector3(0,-15,0),life:0.3+Math.random()*0.2});
+              }
+              spawnShockwave(mid,0xffff00);
+              const opp=p.owner===G.p1?G.p2:G.p1;
+              if(opp){opp.hp=Math.max(0,opp.hp-180);opp.hitStun=0.7;opp.vel.y=10;spawnDmgNum(mid,180,'#ffff00')}
+              showSt('⚡ THUNDERSTORM!');log('SPELL COMBO: Lightning+Wind = Thunderstorm! 180 dmg');
+              camSh=0.6;bloom.strength=1.2;setTimeout(()=>bloom.strength=0.5,400);
+              S.remove(p.mesh);S.remove(other.mesh);p.life=0;other.life=0;
+            }
+          }
+        }
+      });
+    };other.life=0}
+
+    // Spell combo: lightning + wind = thunderstorm
+    if(p.spellId==='lightning'||p.spellId==='windSlash'){
+      projectiles.forEach(other=>{
+        if(other!==p&&other.owner===p.owner){
+          const comboPair=p.spellId==='lightning'&&other.spellId==='windSlash'||p.spellId==='windSlash'&&other.spellId==='lightning';
+          if(comboPair){
+            const d=p.mesh.position.distanceTo(other.mesh.position);
+            if(d<3){
+              const mid={x:(p.mesh.position.x+other.mesh.position.x)/2,y:5,z:0};
+              // Thunderstorm effect
+              for(let k=0;k<20;k++){
+                const bolt=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,3+Math.random()*4,4),new THREE.MeshBasicMaterial({color:0xffff00,transparent:true}));
+                bolt.position.set(mid.x+(Math.random()-0.5)*6,mid.y,mid.z+(Math.random()-0.5)*4);
+                S.add(bolt);vfxA.push({m:bolt,v:new THREE.Vector3(0,-15,0),life:0.3+Math.random()*0.2});
+              }
+              spawnShockwave(mid,0xffff00);
+              const opp=p.owner===G.p1?G.p2:G.p1;
+              if(opp){opp.hp=Math.max(0,opp.hp-180);opp.hitStun=0.7;opp.vel.y=10;spawnDmgNum(mid,180,'#ffff00')}
+              showSt('⚡ THUNDERSTORM!');log('SPELL COMBO: Lightning+Wind = Thunderstorm! 180 dmg');
+              camSh=0.6;bloom.strength=1.2;setTimeout(()=>bloom.strength=0.5,400);
+              S.remove(p.mesh);S.remove(other.mesh);p.life=0;other.life=0;
+            }
+          }
+        }
+      });
+    };
           }
         }
       });
