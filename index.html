@@ -1503,6 +1503,8 @@ const BGM={
   init(){if(!this.ctx)this.ctx=new(AudioContext||window.webkitAudioContext)()}
 };
 window.addEventListener('keydown',e=>{if(e.code==='KeyM'&&!e.repeat)BGM.toggle()});
+// Periodic ambient sounds
+setInterval(()=>{if(G.running&&!G.paused&&SFX.ctx)SFX.wind()},8000+Math.random()*4000);
 window.BGM=BGM;
 
 /* ═══════ TUTORIAL MODE ═══════ */
