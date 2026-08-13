@@ -434,6 +434,33 @@ function buildArena(){
   const pg=new THREE.BufferGeometry();const pp=new Float32Array(200*3);for(let i=0;i<600;i++){pp[i]=(Math.random()-0.5)*40;pp[i+1]=Math.random()*15;pp[i+2]=(Math.random()-0.5)*30}pg.setAttribute('position',new THREE.BufferAttribute(pp,3));
   envP=new THREE.Points(pg,new THREE.PointsMaterial({color:T.neon,size:0.05,transparent:true,opacity:0.4,sizeAttenuation:true}));S.add(envP);
 }
+// Arena ground details
+let arenaDetails=[];
+function addArenaDetails(){
+  // Small debris/rocks
+  const T=ARENA_THEMES[currentArena];
+  for(let i=0;i<15;i++){
+    const size=0.05+Math.random()*0.15;
+    const geo=new THREE.DodecahedronGeometry(size,0);
+    const mat=new THREE.MeshStandardMaterial({color:T.grid,roughness:0.9,metalness:0.3});
+    const mesh=new THREE.Mesh(geo,mat);
+    mesh.position.set((Math.random()-0.5)*W*0.8,size/2,(Math.random()-0.5)*D*0.8);
+    mesh.rotation.set(Math.random()*Math.PI,Math.random()*Math.PI,Math.random()*Math.PI);
+    mesh.castShadow=true;
+    S.add(mesh);arenaDetails.push(mesh);
+  }
+  // Scorch marks (dark circles on floor)
+  for(let i=0;i<5;i++){
+    const geo=new THREE.CircleGeometry(0.3+Math.random()*0.5,16);
+    const mat=new THREE.MeshBasicMaterial({color:0x050505,transparent:true,opacity:0.3});
+    const mesh=new THREE.Mesh(geo,mat);
+    mesh.rotation.x=-Math.PI/2;
+    mesh.position.set((Math.random()-0.5)*W*0.6,0.015,(Math.random()-0.5)*D*0.6);
+    S.add(mesh);arenaDetails.push(mesh);
+  }
+}
+addArenaDetails();
+
 function updateEnv(dt){if(!envP)return;envP.rotation.y+=dt*0.008;const p=envP.geometry.attributes.position.array;for(let i=1;i<p.length;i+=3){p[i]+=Math.sin(p[i-1]*0.5+performance.now()*0.001)*0.002;if(p[i]>15)p[i]=0}envP.geometry.attributes.position.needsUpdate=true}
 
 /* ═══════ CHARACTER MODEL ═══════ */
