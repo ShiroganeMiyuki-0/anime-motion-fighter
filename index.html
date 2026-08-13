@@ -854,7 +854,9 @@ function checkHit(atk,def){
     if(atk.combo>=5)showGrade('S');else if(atk.combo>=3)showGrade('A');else if(atk.combo>=2)showGrade('B');
     if(atk.combo===5)SFX.comboMilestone();
     def.perfectRound=false}
-  def.hp=Math.max(0,def.hp-dmg);atk.ki=Math.min(MKI,atk.ki+(atk.atkType==='special'||atk.atkType==='ultimate'?0:12));flashHP(def);return true;
+  def.hp=Math.max(0,def.hp-dmg);atk.ki=Math.min(MKI,atk.ki+(atk.atkType==='special'||atk.atkType==='ultimate'?0:12));
+  // Mana steal: fighters gain small mana on hit
+  if(atk.cls==='fighter')atk.mana=Math.min(MAX_MANA,atk.mana+3);flashHP(def);return true;
 }
 let hitStop=0,slowMo=0,impFrame=0;
 
