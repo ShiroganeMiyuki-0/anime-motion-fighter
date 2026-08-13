@@ -422,7 +422,7 @@ function buildArena(){
   if(!window._arenaGrid)window._arenaGrid=gridH;
   const pts=[[-W/2,0.04,-D/2],[W/2,0.04,-D/2],[W/2,0.04,D/2],[-W/2,0.04,D/2],[-W/2,0.04,-D/2]].map(p=>new THREE.Vector3(...p));
   // Animated border
-const borderLine=new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:T.neon,transparent:true,opacity:0.4}));
+const borderLine=new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:T.neon,transparent:true,opacity:0.35}));
 S.add(borderLine);
 // Store for animation
 if(!window._arenaBorders)window._arenaBorders=[];
