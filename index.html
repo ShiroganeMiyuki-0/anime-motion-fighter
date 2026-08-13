@@ -8,6 +8,20 @@
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3/camera_utils.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3/drawing_utils.js" crossorigin="anonymous"></script>
 <style>
+/* Spell callout overlay */
+#spellCall{position:fixed;top:35%;left:50%;transform:translate(-50%,-50%);z-index:30;pointer-events:none;opacity:0;transition:opacity .15s;text-align:center}
+#spellCall.show{opacity:1}
+#spellCall .sName{font-family:'Orbitron',monospace;font-size:40px;font-weight:900;letter-spacing:6px;text-shadow:0 0 30px currentColor,0 0 60px currentColor,0 4px 0 rgba(0,0,0,.5);line-height:1}
+#spellCall .sSub{font-family:'Orbitron',monospace;font-size:12px;letter-spacing:3px;color:rgba(255,255,255,.6);margin-top:4px}
+/* Voice indicator */
+#voiceInd{position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:20;pointer-events:none;opacity:0;transition:opacity .2s;display:flex;align-items:center;gap:6px;background:rgba(10,14,26,.9);padding:6px 14px;border-radius:20px;border:1px solid #1e293b}
+#voiceInd.show{opacity:1}
+#voiceInd .dot{width:8px;height:8px;border-radius:50%;background:#ef4444;animation:vpulse 1s ease-in-out infinite}
+@keyframes vpulse{50%{background:#22c55e;box-shadow:0 0 8px #22c55e}}
+#voiceInd span{font-family:'Orbitron',monospace;font-size:9px;color:#94a3b8;letter-spacing:1px}
+#voiceInd .heard{font-family:'Orbitron',monospace;font-size:10px;color:var(--a);letter-spacing:1px;font-weight:700}
+</style>
+<style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&display=swap');
 :root{--c:#38bdf8;--r:#fb7185;--a:#fbbf24;--e:#34d399;--v:#a78bfa;--m:#c084fc;--bg:#06080f;--p:rgba(10,14,26,.94);--b:#1e293b}
@@ -171,11 +185,13 @@ canvas#gc{position:fixed;inset:0;width:100%;height:100%;z-index:0}
   <div id="lg"></div>
   <div class="ct">
     <kbd>WASD</kbd> Move <kbd>J</kbd><kbd>K</kbd> Attack <kbd>L</kbd> Block <kbd>SPC</kbd> Special<br>
-    <kbd>Shift</kbd> Sprint <kbd>Q</kbd> Grab <kbd>E</kbd> Counter <kbd>1-8</kbd> Spells <kbd>C</kbd> Webcam <kbd>ESC</kbd> Pause
+    <kbd>Shift</kbd> Sprint <kbd>Q</kbd> Grab <kbd>E</kbd> Counter <kbd>1-8</kbd> Spells <kbd>C</kbd> Webcam <kbd>V</kbd> Voice <kbd>ESC</kbd> Pause
   </div>
 </div>
 
 <div id="grade"><div id="grL"></div></div>
+<div id="spellCall"><div class="sName" id="sName"></div><div class="sSub" id="sSub"></div></div>
+<div id="voiceInd"><div class="dot"></div><span>VOICE:</span><span class="heard" id="voiceHeard">---</span></div>
 <div id="koO"><div id="koTx">K.O.</div></div>
 <div id="rnO"><div id="rnTx"></div></div>
 
@@ -189,6 +205,7 @@ canvas#gc{position:fixed;inset:0;width:100%;height:100%;z-index:0}
     <button class="btn btn-a" onclick="UI.cs('online')" style="width:100%">🌐 ONLINE FIGHT</button>
     <button class="btn btn-m" onclick="UI.cs('ai')" style="width:100%">🤖 VS ADAPTIVE AI</button>
     <button class="btn btn-s" onclick="Webcam.toggle()" style="width:100%;font-size:10px">📷 WEBCAM BODY TRACKING</button>
+    <button class="btn btn-s" onclick="Voice.toggle()" style="width:100%;font-size:10px">🎤 VOICE SPELL CASTING</button>
   </div>
   <p style="color:#1a2540;font-size:9px;margin-top:20px;font-family:'Orbitron',monospace;letter-spacing:2px">v5.0 — MAGIC + CQC ENGINE</p>
 </div></div>
@@ -514,11 +531,9 @@ function castSpell(f,spellIdx,opponent){
   SFX.cast();
 
   if(spell.proj){
-    // Projectile spell
     setTimeout(()=>{spawnProjectile(f.pos,opponent.pos,spell,f);SFX.spell()},200);
-    showSt(spell.name);
+    SpellCall.forSpell(spell.id,f.ch.name);
   }else if(spell.instant){
-    // Lightning — instant hit
     setTimeout(()=>{
       const dist=Math.abs(f.pos.x-opponent.pos.x);
       if(dist<8){
@@ -528,13 +543,12 @@ function castSpell(f,spellIdx,opponent){
           log(`${f.ch.name} LIGHTNING → ${spell.dmg}!`);f.combo++;f.comboT=CMBW}
       }
     },300);
-    showSt('⚡ LIGHTNING');
+    SpellCall.forSpell('lightning',f.ch.name);
   }else if(spell.shield){
-    f.shielded=true;f.shieldT=5;showSt('🛡️ SHIELD');log(`${f.ch.name} cast Magic Shield!`);
+    f.shielded=true;f.shieldT=5;SpellCall.forSpell('magicShield',f.ch.name);log(`${f.ch.name} cast Magic Shield!`);
   }else if(spell.teleport){
-    // Teleport behind opponent
     setTimeout(()=>{f.pos.x=opponent.pos.x-opponent.facing*3;f.pos.x=Math.max(-W/2+0.6,Math.min(W/2-0.6,f.pos.x));
-      spawnHitFX(f.pos,spell.color,'special');SFX.whoosh();showSt('🌀 TELEPORT')},200);
+      spawnHitFX(f.pos,spell.color,'special');SFX.whoosh();SpellCall.forSpell('teleport',f.ch.name)},200);
   }else if(spell.aoe){
     // AoE around caster
     setTimeout(()=>{
@@ -546,7 +560,7 @@ function castSpell(f,spellIdx,opponent){
           log(`${f.ch.name} ${spell.name} → ${spell.dmg}!`);f.combo++;f.comboT=CMBW}
       }
     },350);
-    showSt(spell.emoji+' '+spell.name.toUpperCase());
+    SpellCall.forSpell(spell.id,f.ch.name);
   }
 }
 
@@ -904,6 +918,172 @@ window._webcamActive=false;
 const _p1IRef=p1I;
 
 window.addEventListener('keydown',e=>{if(e.code==='KeyC'&&!e.repeat)Webcam.toggle()});
+
+/* ═══════ SPELL CALLOUT SYSTEM ═══════ */
+const SpellCall={
+  timer:null,
+  show(name,sub,color='var(--a)'){
+    const el=document.getElementById('spellCall');
+    const nameEl=document.getElementById('sName');
+    const subEl=document.getElementById('sSub');
+    nameEl.textContent=name;nameEl.style.color=color;
+    nameEl.style.textShadow=`0 0 30px ${color},0 0 60px ${color},0 4px 0 rgba(0,0,0,.5)`;
+    subEl.textContent=sub||'';
+    el.classList.add('show');
+    clearTimeout(this.timer);
+    this.timer=()=>el.classList.remove('show');
+    setTimeout(this.timer,1200);
+  },
+  forSpell(spellId,casterName){
+    const calls={
+      fireball:{name:'🔥 FIREBALL!',sub:`${casterName} hurls a ball of flame`,color:'#ff4500'},
+      iceShard:{name:'❄️ ICE SHARD!',sub:`${casterName} launches frozen daggers`,color:'#00bfff'},
+      lightning:{name:'⚡ LIGHTNING!',sub:`${casterName} calls down thunder`,color:'#ffff00'},
+      magicShield:{name:'🛡️ MAGIC SHIELD!',sub:`${casterName} conjures a barrier`,color:'#8b5cf6'},
+      teleport:{name:'🌀 TELEPORT!',sub:`${casterName} warps through space`,color:'#c084fc'},
+      earthSpike:{name:'💀 EARTH SPIKE!',sub:`${casterName} shatters the ground`,color:'#8b6914'},
+      windSlash:{name:'✨ WIND SLASH!',sub:`${casterName} whips cutting air`,color:'#90ee90'},
+      darkPulse:{name:'🌊 DARK PULSE!',sub:`${casterName} unleashes shadow energy`,color:'#4a0080'},
+    };
+    const c=calls[spellId];if(c)this.show(c.name,c.sub,c.color);
+  },
+  forAttack(atkType,casterName){
+    const calls={
+      special:{name:'★ KI BEAM ★',sub:`${casterName} fires concentrated energy`,color:'var(--a)'},
+      ultimate:{name:'★★ ULTIMATE ★★',sub:`${casterName} unleashes full power`,color:'#ff0'},
+      groundSlam:{name:'↓ GROUND SLAM',sub:`${casterName} crashes the earth`,color:'var(--r)'},
+      risingBeam:{name:'↑ RISING BEAM',sub:`${casterName} erupts upward`,color:'var(--c)'},
+      counter:{name:'COUNTER',sub:`${casterName} deflects the blow`,color:'var(--c)'},
+      throw:{name:'THROW',sub:`${casterName} hurls the opponent`,color:'var(--r)'},
+      uppercut:{name:'UPPERCUT ↑',sub:`${casterName} launches skyward`,color:'var(--c)'},
+      spinningKick:{name:'SPINNING KICK ↻',sub:`${casterName} unleashes a whirlwind`,color:'var(--e)'},
+    };
+    const c=calls[atkType];if(c)this.show(c.name,c.sub,c.color);
+  }
+};
+window.SpellCall=SpellCall;
+
+/* ═══════ VOICE SPELL CASTING ═══════ */
+const Voice={
+  active:false,recognition:null,lastCast:0,
+
+  // Voice keywords → spell index mapping
+  keywords:{
+    'fireball':0,'fire':0,'flame':0,'burn':0,
+    'ice':1,'ice shard':1,'freeze':1,'frost':1,
+    'lightning':2,'thunder':2,'shock':2,'bolt':2,
+    'shield':3,'protect':3,'barrier':3,'guard':3,
+    'teleport':4,'warp':4,'blink':4,'portal':4,
+    'earth spike':5,'earth':5,'spike':5,'quake':5,
+    'wind':6,'wind slash':6,'air':6,'slice':6,
+    'dark pulse':7,'dark':7,'pulse':7,'shadow':7,
+    // Attack triggers
+    'punch':'punch','hit':'punch','strike':'punch',
+    'kick':'kick','踢':'kick',
+    'block':'block','defend':'block',
+    'special':'special','beam':'special','energy':'special',
+    'ultimate':'ultimate','finish':'ultimate','power up':'ultimate',
+    'counter':'counter','parry':'counter',
+    'grab':'grab','throw':'grab','toss':'grab',
+    'jump':'jump','up':'jump','leap':'jump',
+  },
+
+  toggle(){
+    if(this.active){this.stop();return}
+    this.start();
+  },
+
+  async start(){
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR){log('🎤 Speech Recognition not supported in this browser');return}
+
+    try{
+      // Request mic permission
+      await navigator.mediaDevices.getUserMedia({audio:true});
+
+      this.recognition=new SR();
+      this.recognition.continuous=true;
+      this.recognition.interimResults=true;
+      this.recognition.lang='en-US';
+      this.recognition.maxAlternatives=3;
+
+      this.recognition.onresult=(e)=>this.onResult(e);
+      this.recognition.onerror=(e)=>{
+        if(e.error!=='no-speech')console.error('Voice error:',e.error);
+      };
+      this.recognition.onend=()=>{
+        if(this.active)this.recognition.start(); // restart if still active
+      };
+
+      this.recognition.start();
+      this.active=true;
+      document.getElementById('voiceInd').classList.add('show');
+      log('🎤 Voice spell casting active! Say spell names to cast.');
+      showSt('🎤 VOICE ON');
+    }catch(e){
+      console.error('Mic error:',e);
+      log('🎤 Mic permission denied');
+    }
+  },
+
+  stop(){
+    this.active=false;
+    if(this.recognition){this.recognition.stop();this.recognition=null}
+    document.getElementById('voiceInd').classList.remove('show');
+    log('🎤 Voice casting stopped');
+  },
+
+  onResult(event){
+    if(!this.active||!G.running||G.paused)return;
+    const now=performance.now();
+
+    for(let i=event.resultIndex;i<event.results.length;i++){
+      const result=event.results[i];
+      const transcript=result[0].transcript.toLowerCase().trim();
+
+      // Show what was heard
+      document.getElementById('voiceHeard').textContent=transcript.substring(0,20);
+
+      // Only act on final results (or high-confidence interim)
+      if(!result.isFinal&&result[0].confidence<0.7)continue;
+
+      // Cooldown to prevent spam
+      if(now-this.lastCast<800)continue;
+
+      // Check keywords
+      for(const[keyword,action]of Object.entries(this.keywords)){
+        if(transcript.includes(keyword)){
+          this.lastCast=now;
+
+          if(typeof action==='number'){
+            // Spell cast
+            const spell=SPELLS[action];
+            if(G.p1.mana>=spell.cost&&G.p1.spellCDs[action]<=0){
+              castSpell(G.p1,action,G.p2);
+              SpellCall.forSpell(spell.id,G.p1.ch.name);
+              log(`🎤 Voice: "${keyword}" → ${spell.name}`);
+            }else{
+              showSt('NOT ENOUGH MANA');
+            }
+          }else if(action==='jump'){
+            if(G.p1.grounded){G.p1.vel.y=JF;G.p1.grounded=false;SFX.whoosh()}
+          }else if(action==='punch'){startAtk(G.p1,'punch');SFX.whoosh()}
+          else if(action==='kick'){startAtk(G.p1,'kick');SFX.whoosh()}
+          else if(action==='block'){G.p1.blocking=true}
+          else if(action==='special'&&G.p1.ki>=MKI){startAtk(G.p1,'special');G.p1.ki=0;SFX.beam();SpellCall.forAttack('special',G.p1.ch.name)}
+          else if(action==='ultimate'&&G.p1.ki>=MKI){startAtk(G.p1,'ultimate');G.p1.ki=0;SFX.beam();SpellCall.forAttack('ultimate',G.p1.ch.name)}
+          else if(action==='counter'){G.p1.counterActive=true;G.p1.counterT=0.3;SFX.counter()}
+          else if(action==='grab'){startAtk(G.p1,'grab');SFX.whoosh()}
+
+          break; // only first match
+        }
+      }
+    }
+  }
+};
+
+window.addEventListener('keydown',e=>{if(e.code==='KeyV'&&!e.repeat)Voice.toggle()});
+window.Voice=Voice;
 
 window.Webcam=Webcam;
 window.UI=UI;window.G=G;window.Net=Net;
