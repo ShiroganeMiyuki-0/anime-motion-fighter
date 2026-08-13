@@ -487,7 +487,13 @@ function mkFighter(ch,idx){
   const lHi=new THREE.Group();lHi.position.set(-0.13,0,0);hips.add(lHi);const lUL=new THREE.Group();lHi.add(lUL);lUL.add(mkLimb(0.17,0.42,0.17,mA).translateY(-0.22));const lK=new THREE.Group();lK.position.y=-0.42;lUL.add(lK);const lLL=new THREE.Group();lK.add(lLL);lLL.add(mkLimb(0.14,0.4,0.14,mB).translateY(-0.2));const lA=new THREE.Group();lA.position.y=-0.4;lLL.add(lA);const lF=new THREE.Group();lA.add(lF);lF.add(mkLimb(0.16,0.08,0.28,mA).translateY(-0.04).translateZ(0.04));
   const rHi=new THREE.Group();rHi.position.set(0.13,0,0);hips.add(rHi);const rUL=new THREE.Group();rHi.add(rUL);rUL.add(mkLimb(0.17,0.42,0.17,mA).translateY(-0.22));const rK=new THREE.Group();rK.position.y=-0.42;rUL.add(rK);const rLL=new THREE.Group();rK.add(rLL);rLL.add(mkLimb(0.14,0.4,0.14,mB).translateY(-0.2));const rA=new THREE.Group();rA.position.y=-0.4;rLL.add(rA);const rF=new THREE.Group();rA.add(rF);rF.add(mkLimb(0.16,0.08,0.28,mA).translateY(-0.04).translateZ(0.04));
   hips.add(new THREE.Mesh(new THREE.BoxGeometry(0.46,0.06,0.3),mA).translateY(-0.05));
-  const aura=new THREE.Mesh(new THREE.SphereGeometry(1.0,16,16),mG.clone());aura.position.y=1.2;g.add(aura);
+  // Character shadow blob
+const shadowGeo=new THREE.CircleGeometry(0.5,16);
+const shadowMat=new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:0.3});
+const shadow=new THREE.Mesh(shadowGeo,shadowMat);
+shadow.rotation.x=-Math.PI/2;shadow.position.y=0.01;g.add(shadow);
+
+const aura=new THREE.Mesh(new THREE.SphereGeometry(1.0,16,16),mG.clone());aura.position.y=1.2;g.add(aura);
   const scarf=new THREE.Group();scarf.add(mkLimb(0.08,0.5,0.04,mA).translateY(-0.25));scarf.position.set(0,0.3,-0.15);chest.add(scarf);
   S.add(g);
   const J={hips,spine,chest,neck,head,hairG,scarf,lS,lUA,lE,lLA,lW,lH,rS,rUA,rE,rLA,rW,rH,lHi,lUL,lK,lLL,lA,lF,rHi,rUL,rK,rLL,rA,rF,aura};
