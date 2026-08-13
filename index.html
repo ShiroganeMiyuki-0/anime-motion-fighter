@@ -446,7 +446,7 @@ _arenaBorders.push(borderLine);
   const neonColors=[T.neon,0xfb7185,0xfbbf24,0xa78bfa,0x34d399];
   for(let i=0;i<8;i++){const c=neonColors[i%neonColors.length];const sg=new THREE.PlaneGeometry(2+Math.random()*2,0.4+Math.random()*0.3);const sign=new THREE.Mesh(sg,new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:0.6}));const a=Math.random()*Math.PI*2,d=25+Math.random()*10;sign.position.set(Math.cos(a)*d,3+Math.random()*6,Math.sin(a)*d);sign.lookAt(0,sign.position.y,0);S.add(sign);S.add(new THREE.PointLight(c,0.5,8).copy(sign.position))}
   const pg=new THREE.BufferGeometry();const pp=new Float32Array(200*3);for(let i=0;i<600;i++){pp[i]=(Math.random()-0.5)*40;pp[i+1]=Math.random()*15;pp[i+2]=(Math.random()-0.5)*30}pg.setAttribute('position',new THREE.BufferAttribute(pp,3));
-  envP=new THREE.Points(pg,new THREE.PointsMaterial({color:T.neon,size:0.05,transparent:true,opacity:0.4,sizeAttenuation:true}));S.add(envP);
+  envP=new THREE.Points(pg,new THREE.PointsMaterial({color:T.neon,size:0.05,transparent:true,opacity:0.35,sizeAttenuation:true,blending:THREE.AdditiveBlending}));S.add(envP);
 
   // Pulsing arena lights
   if(!window._arenaLights)window._arenaLights=[];
