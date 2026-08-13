@@ -605,6 +605,13 @@ function animFighter(f,dt){
   J.scarf.rotation.x+=f.scarfVel.x;J.scarf.rotation.z+=f.scarfVel.z;
 
   applyPose(f,dt);
+  // Motion trail for fast movement
+  if(Math.abs(f.vel.x)>10&&f.grounded&&Math.random()<0.2){
+    const trail=new THREE.Mesh(new THREE.BoxGeometry(0.3,1.8,0.2),new THREE.MeshBasicMaterial({color:f.ch.color,transparent:true,opacity:0.15}));
+    trail.position.set(f.pos.x,f.pos.y+1,0);S.add(trail);
+    vfxA.push({m:trail,v:new THREE.Vector3,life:0.15});
+  }
+
   f.g.position.x=f.hitStun>0?f.pos.x+(Math.random()-0.5)*0.15:f.pos.x;
   f.g.position.y=f.pos.y;f.g.position.z=f.pos.z;
   f.g.rotation.y=f.facing>0?0:Math.PI;
