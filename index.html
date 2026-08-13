@@ -30,6 +30,14 @@ canvas#gc{position:fixed;inset:0;width:100%;height:100%;z-index:0}
 #vig{position:fixed;inset:0;z-index:5;pointer-events:none;box-shadow:inset 0 0 150px 40px rgba(0,0,0,.65);transition:box-shadow .3s}
 #hF{position:fixed;inset:0;z-index:20;pointer-events:none;background:#fff;opacity:0;transition:opacity .03s}#hF.on{opacity:.18}
 #imF{position:fixed;inset:0;z-index:15;pointer-events:none;background:radial-gradient(circle,transparent 40%,rgba(0,0,0,.4) 100%);opacity:0;transition:opacity .08s}#imF.on{opacity:1}
+/* Slow-mo overlay */
+#slomoOv{position:fixed;inset:0;z-index:12;pointer-events:none;border:3px solid rgba(56,189,248,0);transition:border-color .2s}
+#slomoOv.on{border-color:rgba(56,189,248,.15)}
+/* Rage overlay */
+#rageOv{position:fixed;inset:0;z-index:11;pointer-events:none;background:radial-gradient(circle,transparent 50%,rgba(239,68,68,.1) 100%);opacity:0;transition:opacity .3s}
+#rageOv.on{opacity:1}
+/* Combo counter glow */
+#cT.glow{text-shadow:0 0 20px currentColor,0 0 40px currentColor}
 
 /* HUD */
 #hud{position:fixed;top:0;left:0;right:0;z-index:10;pointer-events:none;padding:10px 14px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
@@ -226,6 +234,7 @@ canvas#gc{position:fixed;inset:0;width:100%;height:100%;z-index:0}
   </div>
 </div>
 
+<div id="slomoOv"></div><div id="rageOv"></div>
 <div id="koO"><div id="koTx">K.O.</div></div>
 <div id="rnO"><div id="rnTx"></div></div>
 
@@ -987,14 +996,14 @@ const G={mode:'local',running:false,paused:false,round:1,p1w:0,p2w:0,timer:RNDT,
     // FPS tracking
     this.fpsAcc+=fdt;this.fpsCount++;
     if(this.fpsAcc>=1){this.fps=this.fpsCount;this.fpsCount=0;this.fpsAcc=0}
-    if(this.paused){comp.render();return}if(hitStop>0){hitStop-=fdt;comp.render();return}const edt=slowMo>0?fdt*0.3:fdt;if(slowMo>0)slowMo-=fdt;if(impFrame>0){impFrame-=fdt;document.getElementById('imF').classList.add('on')}else document.getElementById('imF').classList.remove('on');
+    if(this.paused){comp.render();return}if(hitStop>0){hitStop-=fdt;comp.render();return}const edt=slowMo>0?fdt*0.3:fdt;if(slowMo>0)slowMo-=fdt;document.getElementById("slomoOv").classList.toggle("on",slowMo>0);if(impFrame>0){impFrame-=fdt;document.getElementById('imF').classList.add('on')}else document.getElementById('imF').classList.remove('on');
     this.tAcc+=edt;if(this.tAcc>=1){this.tAcc-=1;this.timer--;if(this.timer<=0){if(this.mode==='timeattack'){this.running=false;document.getElementById('rTi').textContent='⏱️ TIME UP';document.getElementById('rDe').textContent=`${this.timeAttackKills} kills in 60 seconds!`;UI.o('rM');return}this._endR();return}}
     let i1,i2;if(this.mode==='online'){if(Net.role==='host'){i1=p1I();Net.send(i1);i2=Net.ri||mkE()}else{i2=p1I();Net.send(i2);i1=Net.ri||mkE()}}else if(this.mode==='ai'){i1=p1I();i2=aiInput(this.p2,this.p1)}else{i1=p1I();i2=p2I()}
     bufInput(this.p1,i1);bufInput(this.p2,i2);
     this.physAcc+=edt;while(this.physAcc>=PHYS_DT){procInput(this.p1,i1,PHYS_DT,this.p2);procInput(this.p2,i2,PHYS_DT,this.p1);updateFighter(this.p1,PHYS_DT);updateFighter(this.p2,PHYS_DT);if(this.p1.hitStun<=0)this.p1.facing=this.p1.pos.x<this.p2.pos.x?1:-1;if(this.p2.hitStun<=0)this.p2.facing=this.p2.pos.x<this.p1.pos.x?1:-1;const ov=1.3-Math.abs(this.p1.pos.x-this.p2.pos.x);if(ov>0){const h=ov/2;if(this.p1.pos.x<this.p2.pos.x){this.p1.pos.x-=h;this.p2.pos.x+=h}else{this.p1.pos.x+=h;this.p2.pos.x-=h}}if(checkHit(this.p1,this.p2))spawnHitFX(this.p2.pos,this.p1.ch.color,this.p1.atkType);if(checkHit(this.p2,this.p1))spawnHitFX(this.p1.pos,this.p2.ch.color,this.p2.atkType);this.physAcc-=PHYS_DT}
     updateProjectiles(fdt);
     if(this.p1.hp<=0||this.p2.hp<=0){this._endR();return}
-    animFighter(this.p1,fdt);animFighter(this.p2,fdt);updateCam(this.p1,this.p2,fdt);updateVFX(fdt);updateEnv(fdt);updateHUD(this.p1,this.p2);showCombo(Math.max(this.p1.combo,this.p2.combo));if(Tutorial.active)Tutorial.update(this.p1,fdt);
+    animFighter(this.p1,fdt);animFighter(this.p2,fdt);updateCam(this.p1,this.p2,fdt);updateVFX(fdt);updateEnv(fdt);updateHUD(this.p1,this.p2);document.getElementById("rageOv").classList.toggle("on",this.p1.rageMode);showCombo(Math.max(this.p1.combo,this.p2.combo));if(Tutorial.active)Tutorial.update(this.p1,fdt);
     const big=(this.p1.attacking&&(this.p1.atkType==='special'||this.p1.atkType==='ultimate'))||(this.p2.attacking&&(this.p2.atkType==='special'||this.p2.atkType==='ultimate'));bloom.strength=big?0.9:0.5;comp.render()},
   _endR(){this.running=false;this.koTime=1;const w=this.p1.hp>this.p2.hp?1:2;if(w===1)this.p1w++;else this.p2w++;updateWD();SFX.ko();SFX.call('K.O.!');camSh=0.65;document.getElementById('koO').classList.add('on');document.getElementById('hF').classList.add('on');setTimeout(()=>document.getElementById('hF').classList.remove('on'),80);updateCam(this.p1,this.p2,0.016);comp.render();const winner=w===1?this.p1:this.p2;if(winner.perfectRound){showGrade('S+');log('★ PERFECT ROUND ★')}
     // Track stats
