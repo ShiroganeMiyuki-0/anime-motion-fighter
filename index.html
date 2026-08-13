@@ -804,8 +804,8 @@ if(i.counter&&f.atkCD<=0&&!f.attacking&&f.grounded){
   }
 
   // Combo breaker: spend 50 Ki to escape combo
-if(f.hitStun>0&&f.combo>=3&&f.ki>=50&&i.special){
-  f.hitStun=0;f.ki-=50;f.invuln=0.3;f.vel.y=5;camSh=0.3;
+if(f.hitStun>0&&f.combo>=3&&f.ki>=50&&i.special&&!f.comboBreakCD){
+  f.hitStun=0;f.ki-=50;f.invuln=0.3;f.vel.y=5;camSh=0.3;f.comboBreakCD=true;setTimeout(()=>f.comboBreakCD=false,3000);
   spawnHitFX({x:f.pos.x,y:f.pos.y+1.5,z:0},f.ch.color,'special');
   showSt('COMBO BREAKER!');SFX.counter();bloom.strength=1.0;setTimeout(()=>bloom.strength=0.5,200);log('COMBO BREAKER!');
 }
