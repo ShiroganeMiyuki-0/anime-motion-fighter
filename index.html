@@ -722,6 +722,12 @@ function mkE(){return{left:false,right:false,up:false,down:false,punch:false,kic
 /* ═══════ COMBAT ═══════ */
 function bufInput(f,i){f.inputBuf.push({...i,t:f.animT});if(f.inputBuf.length>12)f.inputBuf.shift();f.lastInput=i}
 
+// Auto-cast on voice during combat
+function tryVoiceCast(f,opponent){
+  if(!Voice.active)return;
+  // Handled by Voice.onResult
+}
+
 function castSpell(f,spellIdx,opponent){
   const spell=SPELLS[spellIdx];if(!spell)return;
   if(f.mana<spell.cost||f.spellCDs[spellIdx]>0)return;
