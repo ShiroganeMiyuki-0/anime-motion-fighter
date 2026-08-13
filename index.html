@@ -379,7 +379,12 @@ const SFX={ctx:null,init(){if(!this.ctx)this.ctx=new(AudioContext||window.webkit
   step(){this.init();const c=this.ctx,n=c.currentTime;const o=c.createOscillator();o.type='sine';o.frequency.setValueAtTime(60+Math.random()*30,n);const g=c.createGain();g.gain.setValueAtTime(0.03,n);g.gain.exponentialRampToValueAtTime(0.001,n+0.04);o.connect(g).connect(c.destination);o.start(n);o.stop(n+0.04)},
   cast(){this.init();const c=this.ctx,n=c.currentTime;const o=c.createOscillator();o.type='sine';o.frequency.setValueAtTime(300,n);o.frequency.exponentialRampToValueAtTime(800,n+0.15);o.frequency.exponentialRampToValueAtTime(200,n+0.3);const g=c.createGain();g.gain.setValueAtTime(0.1,n);g.gain.exponentialRampToValueAtTime(0.001,n+0.3);o.connect(g).connect(c.destination);o.start(n);o.stop(n+0.3)},
   spell(){this.init();const c=this.ctx,n=c.currentTime;const o=c.createOscillator();o.type='triangle';o.frequency.setValueAtTime(600,n);o.frequency.linearRampToValueAtTime(1200,n+0.1);o.frequency.linearRampToValueAtTime(400,n+0.2);const g=c.createGain();g.gain.setValueAtTime(0.08,n);g.gain.exponentialRampToValueAtTime(0.001,n+0.2);o.connect(g).connect(c.destination);o.start(n);o.stop(n+0.2)},
-  call(t){this.init();const c=this.ctx,n=c.currentTime;const o=c.createOscillator();o.type='sawtooth';o.frequency.setValueAtTime(t.includes('K.O.')?150:200,n);o.frequency.exponentialRampToValueAtTime(t.includes('K.O.')?60:80,n+0.3);const g=c.createGain();g.gain.setValueAtTime(0.08,n);g.gain.exponentialRampToValueAtTime(0.001,n+0.3);o.connect(g).connect(c.destination);o.start(n);o.stop(n+0.3)}};
+  call(t){this.init();const c=this.ctx,n=c.currentTime;const o=c.createOscillator();o.type='sawtooth';o.frequency.setValueAtTime(t.includes('K.O.')?150:200,n);o.frequency.exponentialRampToValueAtTime(t.includes('K.O.')?60:80,n+0.3);const g=c.createGain();g.gain.setValueAtTime(0.08,n);g.gain.exponentialRampToValueAtTime(0.001,n+0.3);o.connect(g).connect(c.destination);o.start(n);o.stop(n+0.3)},
+  wind(){this.init();const c=this.ctx,n=c.currentTime;const o=c.createOscillator();o.type='sine';o.frequency.setValueAtTime(80+Math.random()*40,n);const g=c.createGain();g.gain.setValueAtTime(0.015,n);g.gain.linearRampToValueAtTime(0.025,n+1);g.gain.linearRampToValueAtTime(0.015,n+2);o.connect(g).connect(c.destination);o.start(n);o.stop(n+2.5)},
+  powerup(){this.init();const c=this.ctx,n=c.currentTime;for(let i=0;i<3;i++){const o=c.createOscillator();o.type='sine';o.frequency.setValueAtTime(300+i*200,n+i*0.1);o.frequency.exponentialRampToValueAtTime(600+i*200,n+i*0.1+0.15);const g=c.createGain();g.gain.setValueAtTime(0.06,n+i*0.1);g.gain.exponentialRampToValueAtTime(0.001,n+i*0.1+0.15);o.connect(g).connect(c.destination);o.start(n+i*0.1);o.stop(n+i*0.1+0.15)}},
+  comboMilestone(){this.init();const c=this.ctx,n=c.currentTime;const notes=[523,659,784,1047];notes.forEach((f,i)=>{const o=c.createOscillator();o.type='sine';o.frequency.value=f;const g=c.createGain();g.gain.setValueAtTime(0.05,n+i*0.08);g.gain.exponentialRampToValueAtTime(0.001,n+i*0.08+0.15);o.connect(g).connect(c.destination);o.start(n+i*0.08);o.stop(n+i*0.08+0.15)})},
+  rage(){this.init();const c=this.ctx,n=c.currentTime;const o=c.createOscillator();o.type='sawtooth';o.frequency.setValueAtTime(100,n);o.frequency.linearRampToValueAtTime(300,n+0.3);const g=c.createGain();g.gain.setValueAtTime(0.08,n);g.gain.exponentialRampToValueAtTime(0.001,n+0.4);o.connect(g).connect(c.destination);o.start(n);o.stop(n+0.4)}
+};
 
 /* ═══════ ARENA ═══════ */
 let envP=null;
@@ -738,7 +743,7 @@ function updateFighter(f,dt){
   // Mana regen
   if(f.mana<MAX_MANA)f.mana=Math.min(MAX_MANA,f.mana+(f.cls==='mage'?8:f.cls==='hybrid'?5:3)*dt);
   // Rage mode: at <20% HP, boost damage and Ki regen
-  if(f.hp<MHP*0.2&&!f.rageMode){f.rageMode=true;f.J.aura.material.opacity=0.2;log(`${f.ch.name} entered RAGE MODE!`);showSt('🔥 RAGE MODE')}
+  if(f.hp<MHP*0.2&&!f.rageMode){f.rageMode=true;f.J.aura.material.opacity=0.2;log(`${f.ch.name} entered RAGE MODE!`);showSt('🔥 RAGE MODE');SFX.rage()}}
   if(f.hp>=MHP*0.2&&f.rageMode){f.rageMode=false}
   const rageMult=f.rageMode?1.25:1;
   if(f.rageMode){f.ki=Math.min(MKI,f.ki+8*dt);f.J.aura.material.opacity=0.15+Math.sin(f.animT*6)*0.1}
@@ -779,6 +784,7 @@ function checkHit(atk,def){
     showHitT(nm[atk.atkType]||'HIT',atk.atkType==='special'||atk.atkType==='ultimate'?'var(--a)':'var(--r)');
     log(`${atk.ch.name} ${nm[atk.atkType]} → ${Math.round(dmg)} (${atk.combo} HIT)`);
     if(atk.combo>=5)showGrade('S');else if(atk.combo>=3)showGrade('A');else if(atk.combo>=2)showGrade('B');
+    if(atk.combo===5)SFX.comboMilestone();
     def.perfectRound=false}
   def.hp=Math.max(0,def.hp-dmg);atk.ki=Math.min(MKI,atk.ki+(atk.atkType==='special'||atk.atkType==='ultimate'?0:12));flashHP(def);return true;
 }
