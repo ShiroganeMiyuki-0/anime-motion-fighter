@@ -961,7 +961,8 @@ const G={mode:'local',running:false,paused:false,round:1,p1w:0,p2w:0,timer:RNDT,
   _init(){buildArena();this.p1=mkFighter(this.p1c,0);this.p2=mkFighter(this.p2c,1);this.p1.cls=this.p1Cls;this.p2.cls=this.mode==='ai'?(Math.random()>0.5?'mage':'fighter'):'fighter';
     document.getElementById('p1N').textContent=`P1: ${this.p1c.name}`;document.getElementById('p2N').textContent=this.mode==='ai'?`AI: ${this.p2c.name}`:`P2: ${this.p2c.name}`;
     this.running=true;this.paused=false;this.timer=RNDT;this.round=1;this.p1w=0;this.p2w=0;this.koTime=0;updateWD();
-    // Intro sequence
+    // Tutorial mode: skip intro, make dummy
+    if(this.mode==='tutorial'){this.p2.hp=99999;this.timer=999;this.lastT=performance.now();this.physAcc=0;this._loop(this.lastT);return}
     this._intro(()=>{SFX.call('FIGHT');this._ann(`ROUND 1`,()=>{this.lastT=performance.now();this.physAcc=0;this._loop(this.lastT)})})},
   _intro(cb){
     // Dramatic character intro
