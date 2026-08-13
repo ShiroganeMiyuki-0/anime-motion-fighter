@@ -1369,9 +1369,13 @@ const G={mode:'local',running:false,paused:false,round:1,p1w:0,p2w:0,timer:RNDT,
 
       const winsNeeded=Math.ceil(this.matchFormat/2);
       if(this.p1w>=winsNeeded||this.p2w>=winsNeeded){const mw=this.p1w>=winsNeeded?this.p1c.name:this.p2c.name;document.getElementById('rTi').textContent='🏆 VICTORY';document.getElementById('rDe').textContent=`${mw} WINS THE MATCH! (${this.p1w}–${this.p2w})`;UI.o('rM')}else{this.round++;this._ann(`ROUND ${this.round}`,()=>this._resetR())}},2200)},
-  _resetR(){[this.p1,this.p2].forEach(f=>{f.hp=MHP;f.ki=0;f.mana=MAX_MANA;f.vel.set(0,0,0);f.hitStun=0;f.attacking=false;f.atkType=null;f.atkFrame=0;f.combo=0;f.invuln=0;f.blocking=false;f.counterActive=false;f.parrying=false;f.sprinting=false;f.casting=false;f.shielded=false;f.perfectRound=true;f.rageMode=false;f.inputBuf.length=0;f.spellCDs.fill(0);Object.assign(f.pose,mkIdlePose())});projectiles.forEach(p=>{S.remove(p.mesh)});projectiles.length=0;this.p1.pos.set(-3.5,0,0);this.p2.pos.set(3.5,0,0);this.timer=RNDT;this.tAcc=0;this.physAcc=0;this.running=true;SFX.call('FIGHT');this.lastT=performance.now();this._loop(this.lastT)},
+  _resetR(){[this.p1,this.p2].forEach(f=>{f.hp=MHP;f.ki=0;f.mana=MAX_MANA;f.vel.set(0,0,0);f.hitStun=0;f.attacking=false;f.atkType=null;f.atkFrame=0;f.combo=0;f.invuln=0;f.blocking=false;f.counterActive=false;f.parrying=false;f.sprinting=false;f.casting=false;f.shielded=false;f.perfectRound=true;f.rageMode=false;f.inputBuf.length=0;f.spellCDs.fill(0);Object.assign(f.pose,mkIdlePose())});// Clear VFX between rounds
+    vfxA.forEach(v=>{S.remove(v.m)});vfxA.length=0;
+    projectiles.forEach(p=>{S.remove(p.mesh)});projectiles.length=0;this.p1.pos.set(-3.5,0,0);this.p2.pos.set(3.5,0,0);this.timer=RNDT;this.tAcc=0;this.physAcc=0;this.running=true;SFX.call('FIGHT');this.lastT=performance.now();this._loop(this.lastT)},
   rematch(){UI.cl('rM');while(S.children.length>0)S.remove(S.children[0]);vfxA.length=0;vfxP.length=0;projectiles.length=0;this._init()},
-  quit(){this.running=false;UI.cl('rM');UI.cl('pM');while(S.children.length>0)S.remove(S.children[0]);vfxA.length=0;vfxP.length=0;projectiles.forEach(p=>{S.remove(p.mesh)});projectiles.length=0;Net.cleanup();UI.o('mM')},
+  quit(){this.running=false;UI.cl('rM');UI.cl('pM');while(S.children.length>0)S.remove(S.children[0]);vfxA.length=0;vfxP.length=0;// Clear VFX between rounds
+    vfxA.forEach(v=>{S.remove(v.m)});vfxA.length=0;
+    projectiles.forEach(p=>{S.remove(p.mesh)});projectiles.length=0;Net.cleanup();UI.o('mM')},
   togglePause(){if(!this.running)return;this.paused=!this.paused;if(this.paused)UI.o('pM');else{UI.cl('pM');this.lastT=performance.now()}}};
 
 document.addEventListener('keydown',e=>{
