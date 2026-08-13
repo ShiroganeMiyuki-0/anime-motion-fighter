@@ -380,7 +380,7 @@ S.add(new THREE.AmbientLight(ambientColors[currentArena]||0x1a2233,0.8));
 const sun=new THREE.DirectionalLight(0xffeedd,1.4);sun.position.set(6,18,10);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-16;sun.shadow.camera.right=16;sun.shadow.camera.top=16;sun.shadow.camera.bottom=-16;S.add(sun);
 S.add(new THREE.DirectionalLight(0x38bdf8,0.3).translateX(-10).translateY(8).translateZ(-6));
 S.add(new THREE.PointLight(0xfb7185,0.2,30).translateX(10).translateY(5).translateZ(6));
-const sL=new THREE.SpotLight(0x38bdf8,4,30,Math.PI/5.5,0.5);sL.position.set(-7,14,0);sL.target.position.set(-3,0,0);
+const sL=new THREE.SpotLight(ARENA_THEMES[currentArena]?.neon||0x38bdf8,4,30,Math.PI/5.5,0.5);sL.position.set(-7,14,0);sL.target.position.set(-3,0,0);
 const sR=new THREE.SpotLight(0xfb7185,4,30,Math.PI/5.5,0.5);sR.position.set(7,14,0);sR.target.position.set(3,0,0);
 S.add(sL,sL.target,sR,sR.target);
 
