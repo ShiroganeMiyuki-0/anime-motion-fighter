@@ -455,6 +455,14 @@ _arenaBorders.push(borderLine);
 // Arena ground details
 let arenaDetails=[];
 function addArenaDetails(){
+  // Floating crystal above arena center
+  const T=ARENA_THEMES[currentArena];
+  const crystalGeo=new THREE.OctahedronGeometry(0.4,0);
+  const crystalMat=new THREE.MeshBasicMaterial({color:T.neon,transparent:true,opacity:0.6,wireframe:true});
+  const crystal=new THREE.Mesh(crystalGeo,crystalMat);
+  crystal.position.set(0,8,0);S.add(crystal);
+  if(!window._arenaCrystals)window._arenaCrystals=[];
+  _arenaCrystals.push({mesh:crystal,phase:Math.random()*Math.PI*2});
   // Small debris/rocks
   const T=ARENA_THEMES[currentArena];
   for(let i=0;i<15;i++){
@@ -483,6 +491,7 @@ function updateEnv(dt){
   // Pulse arena lights
   if(window._arenaLights){const t=performance.now()*0.001;_arenaLights.forEach(l=>{l.light.intensity=l.baseIntensity*(1+Math.sin(t*2+l.phase)*0.15)})}
   if(window._holoRings){const t=performance.now()*0.001;_holoRings.forEach(r=>{r.mesh.rotation.z=t*0.3+r.phase;r.mesh.material.opacity=0.2+Math.sin(t*1.5+r.phase)*0.08})}
+  if(window._arenaCrystals){const t=performance.now()*0.001;_arenaCrystals.forEach(c=>{c.mesh.rotation.y=t*0.5+c.phase;c.mesh.rotation.x=Math.sin(t*0.3+c.phase)*0.3;c.mesh.position.y=8+Math.sin(t*0.8+c.phase)*0.5})}
   if(!envP)return;envP.rotation.y+=dt*0.008;const p=envP.geometry.attributes.position.array;for(let i=1;i<p.length;i+=3){p[i]+=Math.sin(p[i-1]*0.5+performance.now()*0.001)*0.002;if(p[i]>15)p[i]=0}envP.geometry.attributes.position.needsUpdate=true}
 
 /* ═══════ CHARACTER MODEL ═══════ */
