@@ -1024,7 +1024,7 @@ function spawnHitFX(pos,color,type='punch',dmg=50){const c=new THREE.Color(color
   // Ring flash
   const r=getVFX(new THREE.RingGeometry(0.1,0.5,16),new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:0.9,side:THREE.DoubleSide}));r.position.set(pos.x,pos.y,pos.z);vfxA.push({m:r,v:new THREE.Vector3,life:0.22,isRing:true,sc:1});
   // Directional sparks (4 cardinal directions)
-  for(let i=0;i<4;i++){const angle=i*Math.PI/2;const spark=getVFX(new THREE.BoxGeometry(0.03,0.03,0.15),new THREE.MeshBasicMaterial({color:c,transparent:true}));spark.position.set(pos.x,pos.y+1.5,pos.z);spark.rotation.z=angle;vfxA.push({m:spark,v:new THREE.Vector3(Math.cos(angle)*6,Math.sin(angle)*6+2,0),life:0.3});}
+  for(let i=0;i<4;i++){const angle=i*Math.PI/2;const spark=getVFX(new THREE.BoxGeometry(0.03,0.03,0.15),new THREE.MeshBasicMaterial({color:c,transparent:true}));spark.position.set(pos.x,pos.y+1.5,pos.z);spark.rotation.z=angle+Math.random()*0.3;vfxA.push({m:spark,v:new THREE.Vector3(Math.cos(angle)*6,Math.sin(angle)*6+2,0),life:0.3});}
   // Flash light
   const flash=new THREE.PointLight(color,3,4);flash.position.set(pos.x,pos.y+1.5,pos.z);S.add(flash);setTimeout(()=>S.remove(flash),80);
 }
