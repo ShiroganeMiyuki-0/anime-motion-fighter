@@ -336,6 +336,9 @@ const camT=new THREE.Vector3(0,2.5,0),camP=new THREE.Vector3(0,5.5,15);let camSh
 const comp=new EffectComposer(R);comp.addPass(new RenderPass(S,cam));
 const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),0.5,0.4,0.82);comp.addPass(bloom);
 
+// FXAA-like quality: use higher pixel ratio on desktop
+if(devicePixelRatio>1)R.setPixelRatio(Math.min(devicePixelRatio,1.5));
+
 /* ═══════ LIGHTS ═══════ */
 S.add(new THREE.AmbientLight(0x1a2233,0.8));
 const sun=new THREE.DirectionalLight(0xffeedd,1.4);sun.position.set(6,18,10);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-16;sun.shadow.camera.right=16;sun.shadow.camera.top=16;sun.shadow.camera.bottom=-16;S.add(sun);
