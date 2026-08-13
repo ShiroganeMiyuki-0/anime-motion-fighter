@@ -837,7 +837,10 @@ if(i.special&&f.ki>=MKI){if(i.down){startAtk(f,'groundSlam');f.ki=0;SFX.beam();s
     }
   }
 }
-function startAtk(f,t){f.attacking=true;f.atkType=t;f.atkFrame=0;f.atkCD={punch:0.18,kick:0.22,launcher:0.25,sweep:0.22,lowSweep:0.2,risingKick:0.28,dashPunch:0.2,airKick:0.18,grab:0.4,special:0.5,counter:0.4,ultimate:0.7,groundSlam:0.5,risingBeam:0.5,elbow:0.2,knee:0.22,headbutt:0.2,throw:0.35,uppercut:0.25,spinningKick:0.28}[t]||0.2}
+// Just Frame: attacking during counter window = bonus
+function startAtk(f,t){
+  f.attacking=true;f.atkType=t;f.atkFrame=0;
+  f.justFrame=f.counterT>0||f.parrying; // Just frame if during counter/parry window;f.atkCD={punch:0.18,kick:0.22,launcher:0.25,sweep:0.22,lowSweep:0.2,risingKick:0.28,dashPunch:0.2,airKick:0.18,grab:0.4,special:0.5,counter:0.4,ultimate:0.7,groundSlam:0.5,risingBeam:0.5,elbow:0.2,knee:0.22,headbutt:0.2,throw:0.35,uppercut:0.25,spinningKick:0.28}[t]||0.2}
 
 function updateFighter(f,dt){
   f.prevPos.copy(f.pos);f.vel.y+=GRAV*dt;f.pos.y+=f.vel.y*dt;
