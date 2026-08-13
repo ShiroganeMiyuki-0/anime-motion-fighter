@@ -783,7 +783,7 @@ function updateFighter(f,dt){
   if(f.counterT>0){f.counterT-=dt;if(f.counterT<=0)f.counterActive=false}
   if(f.parryT>0){f.parryT-=dt;if(f.parryT<=0)f.parrying=false}
   if(f.attacking){f.atkFrame+=dt*60;const mf={punch:14,kick:14,launcher:18,sweep:16,lowSweep:14,risingKick:18,dashPunch:14,airKick:10,grab:20,special:22,counter:12,ultimate:30,groundSlam:24,risingBeam:22,elbow:14,knee:16,headbutt:12,throw:18,uppercut:16,spinningKick:20}[f.atkType]||14;if(f.atkFrame>=mf){f.attacking=false;f.atkType=null;f.atkFrame=0}}
-  if(f.comboT>0){f.comboT-=dt;if(f.comboT<=0)f.combo=0}
+  if(f.comboT>0){f.comboT-=dt;if(f.comboT<=0){f.combo=0;document.getElementById('cT').classList.remove('show')}}
   if(!f.attacking&&f.ki<MKI)f.ki=Math.min(MKI,f.ki+4.5*dt);
   // Mana regen
   if(f.mana<MAX_MANA)f.mana=Math.min(MAX_MANA,f.mana+(f.cls==='mage'?8:f.cls==='hybrid'?5:3)*dt);
