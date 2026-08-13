@@ -808,6 +808,8 @@ function checkHit(atk,def){
     spawnHitFX({x:(atk.pos.x+def.pos.x)/2,y:def.pos.y+1.5,z:0},0xffffff,'counter');showSt('COUNTERED!');showHitT('COUNTER','var(--c)');showGrade('S');return true}
 
   let dmg=DMG[atk.atkType]||DMG.punch;
+  // Combo scaling: +5% per hit in combo
+  if(atk.combo>1)dmg*=(1+(atk.combo-1)*0.05);
   if(atk.ch.style==='Aggressive')dmg*=1.12;if(atk.ch.style==='Power')dmg*=1.18;if(atk.ch.style==='Speed')dmg*=0.92;if(def.ch.style==='Defensive')dmg*=0.88;
 
   if(def.blocking||def.shielded){dmg*=(def.shielded?0.05:BLKR);camSh=0.12;SFX.block();spawnBlockFX(def);log(`${def.ch.name} ${def.shielded?'SHIELD':'BLOCKED'}!`);showHitT(def.shielded?'SHIELDED':'BLOCKED','var(--c)');def.perfectRound=false}
