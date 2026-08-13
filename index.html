@@ -1047,6 +1047,19 @@ function flashHP(f){const b=f.idx===0?document.getElementById('p1H'):document.ge
 
 /* ═══════ HUD ═══════ */
 // Input display for training
+// Frame data for training
+function updateFrameData(f){
+  const el=document.getElementById('frameData');
+  if(!el||!Tutorial.active)return;
+  if(f.attacking){
+    const hw={punch:{s:4,e:9},kick:{s:5,e:10},launcher:{s:5,e:12},sweep:{s:4,e:10},elbow:{s:3,e:8},knee:{s:4,e:10}};
+    const w=hw[f.atkType]||{s:4,e:9};
+    el.textContent=`${f.atkType.toUpperCase()} F${Math.floor(f.atkFrame)} | Active:${w.s}-${w.e}`;
+  }else{
+    el.textContent=f.hitStun>0?'HITSTUN':f.blocking?'BLOCKING':'IDLE';
+  }
+}
+
 function updateInputDisplay(f){
   const el=document.getElementById('inputDisp');
   if(!el||!Tutorial.active)return;
