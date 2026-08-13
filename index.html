@@ -961,7 +961,8 @@ function updateCam(p1,p2,dt){const mx=(p1.pos.x+p2.pos.x)/2,my=Math.max(p1.pos.y
 const vfxP=[],vfxA=[];
 function getVFX(g,m){let o=vfxP.pop();if(o){o.geometry.dispose();o.material.dispose()}o=new THREE.Mesh(g,m);S.add(o);return o}
 function retVFX(o){S.remove(o);vfxP.push(o)}
-function spawnHitFX(pos,color,type='punch'){const c=new THREE.Color(color);const n=type==='special'||type==='ultimate'?24:10;
+// Damage-based hit effect intensity
+function spawnHitFX(pos,color,type='punch',dmg=50){const c=new THREE.Color(color);const n=type==='special'||type==='ultimate'?24:10;
   // Main burst
   for(let i=0;i<n;i++){const s=type==='special'||type==='ultimate'?0.04+Math.random()*0.06:0.03+Math.random()*0.04;const m=getVFX(new THREE.SphereGeometry(s,4,4),new THREE.MeshBasicMaterial({color:c,transparent:true}));m.position.set(pos.x+(Math.random()-0.5)*0.6,pos.y+(Math.random()-0.5)*0.6,pos.z);vfxA.push({m,v:new THREE.Vector3((Math.random()-0.5)*10,Math.random()*6+2,(Math.random()-0.5)*6),life:0.35+Math.random()*0.25})}
   // Ring flash
