@@ -238,6 +238,8 @@ canvas#gc{position:fixed;inset:0;width:100%;height:100%;z-index:0}
     <button class="btn btn-p" onclick="UI.cs('local')" style="width:100%">🎮 LOCAL FIGHT</button>
     <button class="btn btn-a" onclick="UI.cs('online')" style="width:100%">🌐 ONLINE FIGHT</button>
     <button class="btn btn-m" onclick="UI.cs('ai')" style="width:100%">🤖 VS ADAPTIVE AI</button>
+    <button class="btn btn-s" onclick="UI.cs('survival')" style="width:100%;font-size:10px">💀 SURVIVAL MODE</button>
+    <button class="btn btn-s" onclick="UI.cs('timeattack')" style="width:100%;font-size:10px">⏱️ TIME ATTACK</button>
     <button class="btn btn-s" onclick="Webcam.toggle()" style="width:100%;font-size:10px">📷 WEBCAM BODY TRACKING</button>
     <button class="btn btn-s" onclick="Voice.toggle()" style="width:100%;font-size:10px">🎤 VOICE SPELL CASTING</button>
     <button class="btn btn-s" onclick="Tutorial.start()" style="width:100%;font-size:10px">📖 TUTORIAL / TRAINING</button>
@@ -948,19 +950,21 @@ const Net={pc:null,dc:null,ri:null,role:null,room:null,sig:new BroadcastChannel(
 
 /* ═══════ UI ═══════ */
 const UI={o(id){document.getElementById(id).classList.add('on')},cl(id){document.getElementById(id).classList.remove('on')},
-  cs(mode){G.mode=mode;this.cl('mM');this.o('clM')},
+  cs(mode){G.mode=mode;this.cl('mM');if(mode==='survival'||mode==='timeattack'){G.p1Cls='fighter';G.p2Cls='fighter';G.p1c=CHARS[0];G.p2c=CHARS[1];G.start();return}this.o('clM')},
   setClass(cls){G.p1Cls=cls;document.querySelectorAll('.clCard').forEach(c=>c.classList.remove('sel'));document.getElementById(cls==='fighter'?'clF':cls==='mage'?'clMa':'clH').classList.add('sel')},
   afterClass(){this.cl('clM');const p1g=document.getElementById('p1G'),p2g=document.getElementById('p2G');p1g.innerHTML='';p2g.innerHTML='';CHARS.forEach((c,i)=>{const mk=(sel,cb)=>{const d=document.createElement('div');d.className='cc'+(sel?' sel':'');d.innerHTML=`<div class="av">${c.emoji}</div><div class="cn">${c.name}</div>`;d.onclick=()=>{d.parentElement.querySelectorAll('.cc').forEach(e=>e.classList.remove('sel'));d.classList.add('sel');cb(c)};return d};p1g.appendChild(mk(i===0,c=>G.p1c=c));p2g.appendChild(mk(i===1,c=>G.p2c=c))});G.p1c=CHARS[0];G.p2c=CHARS[1];document.getElementById('oSec').classList.toggle('show',G.mode==='online');document.getElementById('p2L').textContent=G.mode==='ai'?'🤖 AI FIGHTER':'⚔️ PLAYER 2';document.getElementById('cD').textContent=G.mode==='online'?'Select fighter & connect':G.mode==='ai'?'Choose your opponent':'Both players pick';this.o('cM')}};
 
 /* ═══════ GAME ═══════ */
 const G={mode:'local',running:false,paused:false,round:1,p1w:0,p2w:0,timer:RNDT,p1c:CHARS[0],p2c:CHARS[1],p1Cls:'fighter',p2Cls:'fighter',koTime:0,p1:null,p2:null,lastT:0,tAcc:0,physAcc:0,
-  stats:{totalRounds:0,bestCombo:0,totalDamage:[0,0]},matchFormat:3,
+  stats:{totalRounds:0,bestCombo:0,totalDamage:[0,0]},matchFormat:3,survivalWave:0,survivalKills:0,timeAttackKills:0,
   fps:0,fpsAcc:0,fpsCount:0,
   start(){UI.cl('cM');while(S.children.length>0)S.remove(S.children[0]);vfxA.length=0;vfxP.length=0;projectiles.length=0;S.add(new THREE.AmbientLight(0x1a2233,0.8),sun,new THREE.DirectionalLight(0x38bdf8,0.3).translateX(-10).translateY(8).translateZ(-6),new THREE.PointLight(0xfb7185,0.2,30).translateX(10).translateY(5).translateZ(6),sL,sL.target,sR,sR.target);this._init()},
   _init(){buildArena();this.p1=mkFighter(this.p1c,0);this.p2=mkFighter(this.p2c,1);this.p1.cls=this.p1Cls;this.p2.cls=this.mode==='ai'?(Math.random()>0.5?'mage':'fighter'):'fighter';
     document.getElementById('p1N').textContent=`P1: ${this.p1c.name}`;document.getElementById('p2N').textContent=this.mode==='ai'?`AI: ${this.p2c.name}`:`P2: ${this.p2c.name}`;
-    this.running=true;this.paused=false;this.timer=RNDT;this.round=1;this.p1w=0;this.p2w=0;this.koTime=0;updateWD();
-    // Tutorial mode: skip intro, make dummy
+    this.running=true;this.paused=false;this.round=1;this.p1w=0;this.p2w=0;this.koTime=0;updateWD();
+    // Mode-specific init
+    if(this.mode==='survival'){this.timer=999;this.survivalWave=1;this.survivalKills=0;ai.react=0.7;log('💀 Survival mode — survive as long as you can!')}
+    if(this.mode==='timeattack'){this.timer=60;this.timeAttackKills=0;log('⏱️ Time Attack — 60 seconds, max kills!')}
     if(this.mode==='tutorial'){this.p2.hp=99999;this.timer=999;this.lastT=performance.now();this.physAcc=0;this._loop(this.lastT);return}
     this._intro(()=>{SFX.call('FIGHT');this._ann(`ROUND 1`,()=>{this.lastT=performance.now();this.physAcc=0;this._loop(this.lastT)})})},
   _intro(cb){
@@ -978,7 +982,7 @@ const G={mode:'local',running:false,paused:false,round:1,p1w:0,p2w:0,timer:RNDT,
     this.fpsAcc+=fdt;this.fpsCount++;
     if(this.fpsAcc>=1){this.fps=this.fpsCount;this.fpsCount=0;this.fpsAcc=0}
     if(this.paused){comp.render();return}if(hitStop>0){hitStop-=fdt;comp.render();return}const edt=slowMo>0?fdt*0.3:fdt;if(slowMo>0)slowMo-=fdt;if(impFrame>0){impFrame-=fdt;document.getElementById('imF').classList.add('on')}else document.getElementById('imF').classList.remove('on');
-    this.tAcc+=edt;if(this.tAcc>=1){this.tAcc-=1;this.timer--;if(this.timer<=0){this._endR();return}}
+    this.tAcc+=edt;if(this.tAcc>=1){this.tAcc-=1;this.timer--;if(this.timer<=0){if(this.mode==='timeattack'){this.running=false;document.getElementById('rTi').textContent='⏱️ TIME UP';document.getElementById('rDe').textContent=`${this.timeAttackKills} kills in 60 seconds!`;UI.o('rM');return}this._endR();return}}
     let i1,i2;if(this.mode==='online'){if(Net.role==='host'){i1=p1I();Net.send(i1);i2=Net.ri||mkE()}else{i2=p1I();Net.send(i2);i1=Net.ri||mkE()}}else if(this.mode==='ai'){i1=p1I();i2=aiInput(this.p2,this.p1)}else{i1=p1I();i2=p2I()}
     bufInput(this.p1,i1);bufInput(this.p2,i2);
     this.physAcc+=edt;while(this.physAcc>=PHYS_DT){procInput(this.p1,i1,PHYS_DT,this.p2);procInput(this.p2,i2,PHYS_DT,this.p1);updateFighter(this.p1,PHYS_DT);updateFighter(this.p2,PHYS_DT);if(this.p1.hitStun<=0)this.p1.facing=this.p1.pos.x<this.p2.pos.x?1:-1;if(this.p2.hitStun<=0)this.p2.facing=this.p2.pos.x<this.p1.pos.x?1:-1;const ov=1.3-Math.abs(this.p1.pos.x-this.p2.pos.x);if(ov>0){const h=ov/2;if(this.p1.pos.x<this.p2.pos.x){this.p1.pos.x-=h;this.p2.pos.x+=h}else{this.p1.pos.x+=h;this.p2.pos.x-=h}}if(checkHit(this.p1,this.p2))spawnHitFX(this.p2.pos,this.p1.ch.color,this.p1.atkType);if(checkHit(this.p2,this.p1))spawnHitFX(this.p1.pos,this.p2.ch.color,this.p2.atkType);this.physAcc-=PHYS_DT}
@@ -997,6 +1001,37 @@ const G={mode:'local',running:false,paused:false,round:1,p1w:0,p2w:0,timer:RNDT,
       const winner=w===1?this.p1:this.p2;
       winner.pose.spineX=-0.15;winner.pose.chestX=-0.1;winner.pose.lSX=-0.6;winner.pose.rSX=-0.6;
       winner.pose.lEX=-1.0;winner.pose.rEX=-1.0;winner.J.aura.material.opacity=0.5;winner.J.aura.scale.setScalar(1.5);
+
+      // Survival mode: next enemy
+      if(this.mode==='survival'&&w===1){
+        this.survivalKills++;this.survivalWave++;
+        log(`💀 Wave ${this.survivalWave} — ${this.survivalKills} defeated!`);
+        // Spawn new enemy with scaling difficulty
+        const newChar=CHARS[Math.floor(Math.random()*CHARS.length)];
+        this.p2=mkFighter(newChar,1);this.p2.cls=Math.random()>0.5?'mage':'fighter';
+        ai.react=Math.min(0.95,0.7+this.survivalWave*0.03);
+        this.p1.hp=Math.min(MHP,this.p1.hp+100); // heal between waves
+        document.getElementById('p2N').textContent=`AI: ${newChar.name} (W${this.survivalWave})`;
+        this.timer=RNDT;this.running=true;this.lastT=performance.now();this._loop(this.lastT);
+        showSt(`WAVE ${this.survivalWave}`);
+        return;
+      }
+      if(this.mode==='survival'&&w===2){
+        document.getElementById('rTi').textContent='💀 DEFEATED';
+        document.getElementById('rDe').textContent=`Survived ${this.survivalWave} waves — ${this.survivalKills} kills!`;
+        UI.o('rM');return;
+      }
+
+      // Time attack: count kills in 60s
+      if(this.mode==='timeattack'){
+        if(w===1){this.timeAttackKills++;log(`⏱️ ${this.timeAttackKills} kills!`) }
+        const newChar=CHARS[Math.floor(Math.random()*CHARS.length)];
+        this.p2=mkFighter(newChar,1);this.p2.cls=Math.random()>0.5?'mage':'fighter';
+        document.getElementById('p2N').textContent=`AI: ${newChar.name}`;
+        this.running=true;this.lastT=performance.now();this._loop(this.lastT);
+        return;
+      }
+
       const winsNeeded=Math.ceil(this.matchFormat/2);
       if(this.p1w>=winsNeeded||this.p2w>=winsNeeded){const mw=this.p1w>=winsNeeded?this.p1c.name:this.p2c.name;document.getElementById('rTi').textContent='🏆 VICTORY';document.getElementById('rDe').textContent=`${mw} WINS THE MATCH! (${this.p1w}–${this.p2w})`;UI.o('rM')}else{this.round++;this._ann(`ROUND ${this.round}`,()=>this._resetR())}},2200)},
   _resetR(){[this.p1,this.p2].forEach(f=>{f.hp=MHP;f.ki=0;f.mana=MAX_MANA;f.vel.set(0,0,0);f.hitStun=0;f.attacking=false;f.atkType=null;f.atkFrame=0;f.combo=0;f.invuln=0;f.blocking=false;f.counterActive=false;f.parrying=false;f.sprinting=false;f.casting=false;f.shielded=false;f.perfectRound=true;f.rageMode=false;f.inputBuf.length=0;f.spellCDs.fill(0);Object.assign(f.pose,mkIdlePose())});projectiles.forEach(p=>{S.remove(p.mesh)});projectiles.length=0;this.p1.pos.set(-3.5,0,0);this.p2.pos.set(3.5,0,0);this.timer=RNDT;this.tAcc=0;this.physAcc=0;this.running=true;SFX.call('FIGHT');this.lastT=performance.now();this._loop(this.lastT)},
