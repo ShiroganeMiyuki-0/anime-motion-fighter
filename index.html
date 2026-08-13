@@ -608,7 +608,9 @@ function animFighter(f,dt){
 
   if(f.hitStun>0){p.spineX=0.3;p.spineY=(Math.random()-0.5)*0.2;p.chestX=0.2;p.lSX=0.3;p.rSX=0.3;p.headX=0.15}
   if(!f.grounded&&!f.attacking){p.lHiX=-0.3;p.rHiX=0.3;p.lKX=-0.3;p.rKX=-0.3}
-  if(!f.attacking&&!f.counterActive&&!f.casting&&!f.shielded)J.aura.material.opacity=Math.max(0,J.aura.material.opacity-dt*3);
+  if(!f.attacking&&!f.counterActive&&!f.casting&&!f.shielded)// Glow during attacks
+if(f.attacking){J.aura.material.opacity=Math.max(J.aura.material.opacity,0.2);J.aura.scale.setScalar(Math.max(J.aura.scale.x,1.1))}
+J.aura.material.opacity=Math.max(0,J.aura.material.opacity-dt*3);
 
   // Secondary motion
   const ht=new THREE.Vector3(f.vel.x*0.02+Math.sin(t*3)*0.01,0,-f.vel.x*0.015);
