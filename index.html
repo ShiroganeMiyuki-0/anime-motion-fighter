@@ -363,6 +363,8 @@ R.shadowMap.enabled=true;R.shadowMap.type=THREE.PCFSoftShadowMap;
 R.toneMapping=THREE.ACESFilmicToneMapping;R.toneMappingExposure=1.2;
 R.outputColorSpace=THREE.SRGBColorSpace;
 const S=new THREE.Scene();S.background=new THREE.Color(0x06080f);S.fog=new THREE.FogExp2(0x06080f,0.008);
+  // Store for dynamic fog
+  window._arenaFog=S.fog;
 const cam=new THREE.PerspectiveCamera(48,innerWidth/innerHeight,0.1,250);
 const camT=new THREE.Vector3(0,2.5,0),camP=new THREE.Vector3(0,5.5,15);let camSh=0;
 const comp=new EffectComposer(R);comp.addPass(new RenderPass(S,cam));
