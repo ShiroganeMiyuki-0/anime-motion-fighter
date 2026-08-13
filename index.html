@@ -1017,7 +1017,7 @@ function spawnDmgNum(pos,dmg,color){
   S.add(sprite);
   vfxA.push({m:sprite,v:new THREE.Vector3((Math.random()-0.5)*1,2,0),life:1.0,isDmgNum:true});
 }
-function flashHP(f){const b=f.idx===0?document.getElementById('p1H'):document.getElementById('p2H');b.classList.add('crit');setTimeout(()=>b.classList.remove('crit'),400)}
+function flashHP(f){const b=f.idx===0?document.getElementById('p1H'):document.getElementById('p2H');b.classList.add('crit');setTimeout(()=>b.classList.remove('crit'),400);b.parentElement.style.transform='translateX('+(Math.random()-0.5)*3+'px)';setTimeout(()=>b.parentElement.style.transform='',150)}
 
 /* ═══════ HUD ═══════ */
 // Input display for training
