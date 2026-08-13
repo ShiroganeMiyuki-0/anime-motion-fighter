@@ -493,6 +493,13 @@ function addArenaDetails(){
 }
 addArenaDetails();
 
+  // Ground fog layer
+  const fogGeo=new THREE.PlaneGeometry(W+10,D+10);
+  const fogMat=new THREE.MeshBasicMaterial({color:T.neon,transparent:true,opacity:0.03,side:THREE.DoubleSide});
+  const fogPlane=new THREE.Mesh(fogGeo,fogMat);
+  fogPlane.rotation.x=-Math.PI/2;fogPlane.position.y=0.1;S.add(fogPlane);
+  if(!window._groundFog)window._groundFog=fogPlane
+
 function updateEnv(dt){
   // Pulse arena lights
   if(window._arenaLights){const t=performance.now()*0.001;_arenaLights.forEach(l=>{l.light.intensity=l.baseIntensity*(1+Math.sin(t*2+l.phase)*0.15)})}
