@@ -864,6 +864,8 @@ function checkHit(atk,def){
 
   if(def.blocking||def.shielded){dmg*=(def.shielded?0.05:BLKR);camSh=0.12;SFX.block();spawnBlockFX(def);log(`${def.ch.name} ${def.shielded?'SHIELD':'BLOCKED'}!`);showHitT(def.shielded?'SHIELDED':'BLOCKED','var(--c)');def.perfectRound=false;atk.hitStun=0.1;atk.vel.x=-atk.facing*3}
   else{camSh=atk.atkType==='ultimate'?0.7:atk.atkType==='special'?0.55:atk.atkType==='throw'?0.4:atk.atkType==='counter'?0.45:0.25;def.hitStun=atk.atkType==='special'?0.5:atk.atkType==='ultimate'?0.6:atk.atkType==='throw'?0.5:0.2;def.invuln=0.05;
+    // Counter-hit bonus: hitting during opponent's attack startup
+    if(def.attacking&&def.atkFrame<6){dmg*=1.2;showHitT('COUNTER HIT!','var(--a)');log('COUNTER HIT! +20% dmg')};
     def.vel.x=atk.facing*(atk.atkType==='special'?15:atk.atkType==='ultimate'?18:atk.atkType==='throw'?12:6);
     if(atk.atkType==='special'||atk.atkType==='ultimate')def.vel.y=7;if(atk.atkType==='launcher'||atk.atkType==='uppercut')def.vel.y=10;if(atk.atkType==='risingKick'||atk.atkType==='risingBeam')def.vel.y=8;
     atk.combo++;atk.comboT=CMBW;hitStop=atk.atkType==='ultimate'?0.18:atk.atkType==='special'?0.12:atk.atkType==='counter'?0.1:atk.atkType==='throw'?0.08:0.05;
