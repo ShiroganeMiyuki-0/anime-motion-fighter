@@ -1001,7 +1001,7 @@ function spawnDmgNum(pos,dmg,color){
   const mat=new THREE.SpriteMaterial({map:tex,transparent:true,opacity:1});
   const sprite=new THREE.Sprite(mat);
   sprite.position.set(pos.x+(Math.random()-0.5)*0.5,pos.y+2.5,0);
-  sprite.scale.setScalar(0.8);
+  sprite.scale.setScalar(0.6+Math.min(dmg/200,0.6));
   S.add(sprite);
   vfxA.push({m:sprite,v:new THREE.Vector3((Math.random()-0.5)*1,2,0),life:1.0,isDmgNum:true});
 }
