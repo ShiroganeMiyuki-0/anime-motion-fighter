@@ -890,8 +890,30 @@ function updateWD(){document.getElementById('w1a').classList.toggle('on',G.p1w>=
 
 /* ═══════ NET ═══════ */
 const Net={pc:null,dc:null,ri:null,role:null,room:null,sig:new BroadcastChannel('amf-v6'),
-  create(){const c=Math.random().toString(36).substring(2,8).toUpperCase();this.room=c;this.role='host';document.getElementById('rd').textContent=c;document.getElementById('rd').style.display='block';this.st('sw','WAITING...');this.sig.onmessage=e=>{if(e.data.room!==c)return;if(e.data.type==='join')this._off(c);if(e.data.type==='ans'&&this.pc)this.pc.setRemoteDescription(new RTCSessionDescription(e.data.sdp));if(e.data.type==='ice'&&this.pc)this.pc.addIceCandidate(new RTCIceCandidate(e.data.c))}},
-  join(){const c=document.getElementById('rIn').value.trim().toUpperCase();if(!c)return;this.room=c;this.role='guest';this.st('sc','CONNECTING...');this.sig.postMessage({room:c,type:'join'});this.sig.onmessage=e=>{if(e.data.room!==c)return;if(e.data.type==='off')this._ans(c,e.data.sdp);if(e.data.type==='ice'&&this.pc)this.pc.addIceCandidate(new RTCIceCandidate(e.data.c))}},
+  spectators:0,
+  create(){const c=Math.random().toString(36).substring(2,8).toUpperCase();this.room=c;this.role='host';document.getElementById('rd').textContent=`ROOM: ${c}`;document.getElementById('rd').style.display='block';this.st('sw','WAITING FOR OPPONENT...');
+    this.sig.onmessage=e=>{if(e.data.room!==c)return;
+      if(e.data.type==='join'){
+        if(this.dc&&this.dc.readyState==='open'){
+          // Already connected — tell them to spectate
+          this.sig.postMessage({room:c,type:'full'});
+          this.spectators++;log(`👀 Spectator joined (${this.spectators} watching)`);
+          return;
+        }
+        this._off(c);
+      }
+      if(e.data.type==='full'){this.st('se','ROOM FULL — SPECTATING');this.role='spectator';this._spectate(c);return}
+      if(e.data.type==='ans'&&this.pc)this.pc.setRemoteDescription(new RTCSessionDescription(e.data.sdp));
+      if(e.data.type==='ice'&&this.pc)this.pc.addIceCandidate(new RTCIceCandidate(e.data.c))};
+    // Auto-copy room code
+    try{navigator.clipboard?.writeText(c)}catch{}
+  },
+  join(){const c=document.getElementById('rIn').value.trim().toUpperCase();if(!c)return;this.room=c;this.role='guest';this.st('sc','CONNECTING...');this.sig.postMessage({room:c,type:'join'});
+    this.sig.onmessage=e=>{if(e.data.room!==c)return;
+      if(e.data.type==='off')this._ans(c,e.data.sdp);
+      if(e.data.type==='full'){this.st('se','ROOM FULL — SPECTATING');this.role='spectator';log('👀 Room full, spectating')}
+      if(e.data.type==='ice'&&this.pc)this.pc.addIceCandidate(new RTCIceCandidate(e.data.c))};
+  },
   _off(r){this.pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});this.pc.onicecandidate=e=>{if(e.candidate)this.sig.postMessage({r,type:'ice',c:e.candidate})};this.pc.onconnectionstatechange=()=>{if(this.pc.connectionState==='connected')this.st('so','CONNECTED ✓')};this.dc=this.pc.createDataChannel('g');this._dcs(this.dc);this.pc.createOffer().then(o=>{this.pc.setLocalDescription(o);this.sig.postMessage({room:r,type:'off',sdp:o})})},
   _ans(r,s){this.pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});this.pc.onicecandidate=e=>{if(e.candidate)this.sig.postMessage({r,type:'ice',c:e.candidate})};this.pc.ondatachannel=e=>{this.dc=e.channel;this._dcs(this.dc)};this.pc.setRemoteDescription(new RTCSessionDescription(s)).then(()=>this.pc.createAnswer()).then(a=>{this.pc.setLocalDescription(a);this.sig.postMessage({room:r,type:'ans',sdp:a})})},
   _dcs(ch){ch.onmessage=e=>{const d=JSON.parse(e.data);if(d.type==='i')this.ri=d.input};ch.onopen=()=>log('🔗 Connected!')},
