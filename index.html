@@ -949,6 +949,7 @@ const UI={o(id){document.getElementById(id).classList.add('on')},cl(id){document
 /* ═══════ GAME ═══════ */
 const G={mode:'local',running:false,paused:false,round:1,p1w:0,p2w:0,timer:RNDT,p1c:CHARS[0],p2c:CHARS[1],p1Cls:'fighter',p2Cls:'fighter',koTime:0,p1:null,p2:null,lastT:0,tAcc:0,physAcc:0,
   stats:{totalRounds:0,bestCombo:0,totalDamage:[0,0]},
+  fps:0,fpsAcc:0,fpsCount:0,
   start(){UI.cl('cM');while(S.children.length>0)S.remove(S.children[0]);vfxA.length=0;vfxP.length=0;projectiles.length=0;S.add(new THREE.AmbientLight(0x1a2233,0.8),sun,new THREE.DirectionalLight(0x38bdf8,0.3).translateX(-10).translateY(8).translateZ(-6),new THREE.PointLight(0xfb7185,0.2,30).translateX(10).translateY(5).translateZ(6),sL,sL.target,sR,sR.target);this._init()},
   _init(){buildArena();this.p1=mkFighter(this.p1c,0);this.p2=mkFighter(this.p2c,1);this.p1.cls=this.p1Cls;this.p2.cls=this.mode==='ai'?(Math.random()>0.5?'mage':'fighter'):'fighter';
     document.getElementById('p1N').textContent=`P1: ${this.p1c.name}`;document.getElementById('p2N').textContent=this.mode==='ai'?`AI: ${this.p2c.name}`:`P2: ${this.p2c.name}`;
@@ -965,7 +966,11 @@ const G={mode:'local',running:false,paused:false,round:1,p1w:0,p2w:0,timer:RNDT,
     setTimeout(()=>{document.getElementById('rnO').classList.remove('on');cb?.()},2500);
   },
   _ann(t,cb){document.getElementById('rnTx').textContent=t;document.getElementById('rnO').classList.add('on');setTimeout(()=>{document.getElementById('rnO').classList.remove('on');cb?.()},1500)},
-  _loop(now){if(!this.running)return;requestAnimationFrame(t=>this._loop(t));let fdt=(now-this.lastT)/1000;this.lastT=now;fdt=Math.min(fdt,MAX_FDT);if(this.paused){comp.render();return}if(hitStop>0){hitStop-=fdt;comp.render();return}const edt=slowMo>0?fdt*0.3:fdt;if(slowMo>0)slowMo-=fdt;if(impFrame>0){impFrame-=fdt;document.getElementById('imF').classList.add('on')}else document.getElementById('imF').classList.remove('on');
+  _loop(now){if(!this.running)return;requestAnimationFrame(t=>this._loop(t));let fdt=(now-this.lastT)/1000;this.lastT=now;fdt=Math.min(fdt,MAX_FDT);
+    // FPS tracking
+    this.fpsAcc+=fdt;this.fpsCount++;
+    if(this.fpsAcc>=1){this.fps=this.fpsCount;this.fpsCount=0;this.fpsAcc=0}
+    if(this.paused){comp.render();return}if(hitStop>0){hitStop-=fdt;comp.render();return}const edt=slowMo>0?fdt*0.3:fdt;if(slowMo>0)slowMo-=fdt;if(impFrame>0){impFrame-=fdt;document.getElementById('imF').classList.add('on')}else document.getElementById('imF').classList.remove('on');
     this.tAcc+=edt;if(this.tAcc>=1){this.tAcc-=1;this.timer--;if(this.timer<=0){this._endR();return}}
     let i1,i2;if(this.mode==='online'){if(Net.role==='host'){i1=p1I();Net.send(i1);i2=Net.ri||mkE()}else{i2=p1I();Net.send(i2);i1=Net.ri||mkE()}}else if(this.mode==='ai'){i1=p1I();i2=aiInput(this.p2,this.p1)}else{i1=p1I();i2=p2I()}
     bufInput(this.p1,i1);bufInput(this.p2,i2);
