@@ -1087,6 +1087,8 @@ const G={mode:'local',running:false,paused:false,round:1,p1w:0,p2w:0,timer:RNDT,
     let i1,i2;if(this.mode==='online'){if(Net.role==='host'){i1=p1I();Net.send(i1);i2=Net.ri||mkE()}else{i2=p1I();Net.send(i2);i1=Net.ri||mkE()}}else if(this.mode==='ai'){i1=p1I();i2=aiInput(this.p2,this.p1)}else{i1=p1I();i2=p2I()}
     bufInput(this.p1,i1);bufInput(this.p2,i2);
     this.physAcc+=edt;while(this.physAcc>=PHYS_DT){procInput(this.p1,i1,PHYS_DT,this.p2);procInput(this.p2,i2,PHYS_DT,this.p1);updateFighter(this.p1,PHYS_DT);updateFighter(this.p2,PHYS_DT);if(this.p1.hitStun<=0)this.p1.facing=this.p1.pos.x<this.p2.pos.x?1:-1;if(this.p2.hitStun<=0)this.p2.facing=this.p2.pos.x<this.p1.pos.x?1:-1;const ov=1.3-Math.abs(this.p1.pos.x-this.p2.pos.x);if(ov>0){const h=ov/2;if(this.p1.pos.x<this.p2.pos.x){this.p1.pos.x-=h;this.p2.pos.x+=h}else{this.p1.pos.x+=h;this.p2.pos.x-=h}}if(checkHit(this.p1,this.p2))spawnHitFX(this.p2.pos,this.p1.ch.color,this.p1.atkType);if(checkHit(this.p2,this.p1))spawnHitFX(this.p1.pos,this.p2.ch.color,this.p2.atkType);this.physAcc-=PHYS_DT}
+    // Wall bounce
+    [this.p1,this.p2].forEach(f=>{if(Math.abs(f.pos.x)>=W/2-0.7&&Math.abs(f.vel.x)>5){f.vel.x*=-0.6;f.hitStun=Math.max(f.hitStun,0.15);camSh=0.15;spawnHitFX({x:f.pos.x,y:f.pos.y+1.5,z:0},0xffffff,'punch');log('WALL BOUNCE!')}});
     updateProjectiles(fdt);
     if(this.p1.hp<=0||this.p2.hp<=0){this._endR();return}
     animFighter(this.p1,fdt);animFighter(this.p2,fdt);updateCam(this.p1,this.p2,fdt);updateVFX(fdt);updateEnv(fdt);updateHUD(this.p1,this.p2);document.getElementById("rageOv").classList.toggle("on",this.p1.rageMode);showCombo(Math.max(this.p1.combo,this.p2.combo));if(Tutorial.active)Tutorial.update(this.p1,fdt);
