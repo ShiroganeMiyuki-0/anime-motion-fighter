@@ -733,6 +733,33 @@ function updateProjectiles(dt){
           }
         }
       });
+    }
+
+    // Spell combo: meteor + fireball = inferno
+    if(p.spellId==='meteor'||p.spellId==='fireball'){
+      projectiles.forEach(other=>{
+        if(other!==p&&other.owner===p.owner){
+          const comboPair=p.spellId==='meteor'&&other.spellId==='fireball'||p.spellId==='fireball'&&other.spellId==='meteor';
+          if(comboPair){
+            const d=p.mesh.position.distanceTo(other.mesh.position);
+            if(d<3){
+              const mid={x:(p.mesh.position.x+other.mesh.position.x)/2,y:2,z:0};
+              // Inferno effect
+              for(let k=0;k<25;k++){
+                const flame=new THREE.Mesh(new THREE.ConeGeometry(0.15+Math.random()*0.2,1+Math.random()*2,6),new THREE.MeshBasicMaterial({color:Math.random()>0.5?0xff4500:0xff6600,transparent:true}));
+                flame.position.set(mid.x+(Math.random()-0.5)*4,mid.y,mid.z+(Math.random()-0.5)*3);
+                S.add(flame);vfxA.push({m:flame,v:new THREE.Vector3((Math.random()-0.5)*3,3+Math.random()*5,(Math.random()-0.5)*2),life:0.6+Math.random()*0.4});
+              }
+              spawnShockwave(mid,0xff4500);
+              const opp=p.owner===G.p1?G.p2:G.p1;
+              if(opp){opp.hp=Math.max(0,opp.hp-250);opp.hitStun=0.8;opp.vel.y=12;spawnDmgNum(mid,250,'#ff4500')}
+              showSt('🔥 INFERNO!');log('SPELL COMBO: Meteor+Fire = Inferno! 250 dmg');
+              camSh=0.7;bloom.strength=1.5;setTimeout(()=>bloom.strength=0.5,500);
+              S.remove(p.mesh);S.remove(other.mesh);p.life=0;other.life=0;
+            }
+          }
+        }
+      });
     };other.life=0}
 
     // Spell combo: lightning + wind = thunderstorm
@@ -755,6 +782,33 @@ function updateProjectiles(dt){
               if(opp){opp.hp=Math.max(0,opp.hp-180);opp.hitStun=0.7;opp.vel.y=10;spawnDmgNum(mid,180,'#ffff00')}
               showSt('⚡ THUNDERSTORM!');log('SPELL COMBO: Lightning+Wind = Thunderstorm! 180 dmg');
               camSh=0.6;bloom.strength=1.2;setTimeout(()=>bloom.strength=0.5,400);
+              S.remove(p.mesh);S.remove(other.mesh);p.life=0;other.life=0;
+            }
+          }
+        }
+      });
+    }
+
+    // Spell combo: meteor + fireball = inferno
+    if(p.spellId==='meteor'||p.spellId==='fireball'){
+      projectiles.forEach(other=>{
+        if(other!==p&&other.owner===p.owner){
+          const comboPair=p.spellId==='meteor'&&other.spellId==='fireball'||p.spellId==='fireball'&&other.spellId==='meteor';
+          if(comboPair){
+            const d=p.mesh.position.distanceTo(other.mesh.position);
+            if(d<3){
+              const mid={x:(p.mesh.position.x+other.mesh.position.x)/2,y:2,z:0};
+              // Inferno effect
+              for(let k=0;k<25;k++){
+                const flame=new THREE.Mesh(new THREE.ConeGeometry(0.15+Math.random()*0.2,1+Math.random()*2,6),new THREE.MeshBasicMaterial({color:Math.random()>0.5?0xff4500:0xff6600,transparent:true}));
+                flame.position.set(mid.x+(Math.random()-0.5)*4,mid.y,mid.z+(Math.random()-0.5)*3);
+                S.add(flame);vfxA.push({m:flame,v:new THREE.Vector3((Math.random()-0.5)*3,3+Math.random()*5,(Math.random()-0.5)*2),life:0.6+Math.random()*0.4});
+              }
+              spawnShockwave(mid,0xff4500);
+              const opp=p.owner===G.p1?G.p2:G.p1;
+              if(opp){opp.hp=Math.max(0,opp.hp-250);opp.hitStun=0.8;opp.vel.y=12;spawnDmgNum(mid,250,'#ff4500')}
+              showSt('🔥 INFERNO!');log('SPELL COMBO: Meteor+Fire = Inferno! 250 dmg');
+              camSh=0.7;bloom.strength=1.5;setTimeout(()=>bloom.strength=0.5,500);
               S.remove(p.mesh);S.remove(other.mesh);p.life=0;other.life=0;
             }
           }
