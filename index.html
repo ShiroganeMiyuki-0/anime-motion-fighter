@@ -945,6 +945,7 @@ const UI={o(id){document.getElementById(id).classList.add('on')},cl(id){document
 
 /* ═══════ GAME ═══════ */
 const G={mode:'local',running:false,paused:false,round:1,p1w:0,p2w:0,timer:RNDT,p1c:CHARS[0],p2c:CHARS[1],p1Cls:'fighter',p2Cls:'fighter',koTime:0,p1:null,p2:null,lastT:0,tAcc:0,physAcc:0,
+  stats:{totalRounds:0,bestCombo:0,totalDamage:[0,0]},
   start(){UI.cl('cM');while(S.children.length>0)S.remove(S.children[0]);vfxA.length=0;vfxP.length=0;projectiles.length=0;S.add(new THREE.AmbientLight(0x1a2233,0.8),sun,new THREE.DirectionalLight(0x38bdf8,0.3).translateX(-10).translateY(8).translateZ(-6),new THREE.PointLight(0xfb7185,0.2,30).translateX(10).translateY(5).translateZ(6),sL,sL.target,sR,sR.target);this._init()},
   _init(){buildArena();this.p1=mkFighter(this.p1c,0);this.p2=mkFighter(this.p2c,1);this.p1.cls=this.p1Cls;this.p2.cls=this.mode==='ai'?(Math.random()>0.5?'mage':'fighter'):'fighter';
     document.getElementById('p1N').textContent=`P1: ${this.p1c.name}`;document.getElementById('p2N').textContent=this.mode==='ai'?`AI: ${this.p2c.name}`:`P2: ${this.p2c.name}`;
@@ -971,6 +972,11 @@ const G={mode:'local',running:false,paused:false,round:1,p1w:0,p2w:0,timer:RNDT,
     animFighter(this.p1,fdt);animFighter(this.p2,fdt);updateCam(this.p1,this.p2,fdt);updateVFX(fdt);updateEnv(fdt);updateHUD(this.p1,this.p2);showCombo(Math.max(this.p1.combo,this.p2.combo));if(Tutorial.active)Tutorial.update(this.p1,fdt);
     const big=(this.p1.attacking&&(this.p1.atkType==='special'||this.p1.atkType==='ultimate'))||(this.p2.attacking&&(this.p2.atkType==='special'||this.p2.atkType==='ultimate'));bloom.strength=big?0.9:0.5;comp.render()},
   _endR(){this.running=false;this.koTime=1;const w=this.p1.hp>this.p2.hp?1:2;if(w===1)this.p1w++;else this.p2w++;updateWD();SFX.ko();SFX.call('K.O.!');camSh=0.65;document.getElementById('koO').classList.add('on');document.getElementById('hF').classList.add('on');setTimeout(()=>document.getElementById('hF').classList.remove('on'),80);updateCam(this.p1,this.p2,0.016);comp.render();const winner=w===1?this.p1:this.p2;if(winner.perfectRound){showGrade('S+');log('★ PERFECT ROUND ★')}
+    // Track stats
+    this.stats.totalRounds++;
+    this.stats.totalDamage[w===1?0:1]+=MHP-winner.hp;
+    const bestCombo=Math.max(this.p1.combo,this.p2.combo);
+    if(bestCombo>this.stats.bestCombo)this.stats.bestCombo=bestCombo;
     setTimeout(()=>{document.getElementById('koO').classList.remove('on');
       // Win pose
       const winner=w===1?this.p1:this.p2;
