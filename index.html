@@ -422,7 +422,7 @@ function mkFighter(ch,idx){
     parrying:false,parryT:0,
     animT:0,idlePh:Math.random()*Math.PI*2,inputBuf:[],lastInput:{},
     pose,curPose,hairVel:new THREE.Vector3,scarfVel:new THREE.Vector3,
-    grade:'D',perfectRound:true,
+    grade:'D',perfectRound:true,rageMode:false,
   };
 }
 function mkIdlePose(){return{hipsX:0,hipsY:0,hipsZ:0,spineX:0,spineY:0,spineZ:0,chestX:0,chestY:0,chestZ:0,headX:0,headY:0,headZ:0,lSX:0,lSY:0,lSZ:0.15,lEX:0,lEY:0,lEZ:0,lWX:0,lWY:0,lWZ:0,rSX:0,rSY:0,rSZ:-0.15,rEX:0,rEY:0,rEZ:0,rWX:0,rWY:0,rWZ:0,lHiX:0,lHiY:0,lHiZ:0,lKX:0,lKY:0,lKZ:0,lAX:0,lAY:0,lAZ:0,rHiX:0,rHiY:0,rHiZ:0,rKX:0,rKY:0,rKZ:0,rAX:0,rAY:0,rAZ:0}}
@@ -683,6 +683,12 @@ function updateFighter(f,dt){
   if(!f.attacking&&f.ki<MKI)f.ki=Math.min(MKI,f.ki+4.5*dt);
   // Mana regen
   if(f.mana<MAX_MANA)f.mana=Math.min(MAX_MANA,f.mana+(f.cls==='mage'?8:f.cls==='hybrid'?5:3)*dt);
+  // Rage mode: at <20% HP, boost damage and Ki regen
+  if(f.hp<MHP*0.2&&!f.rageMode){f.rageMode=true;f.J.aura.material.opacity=0.2;log(`${f.ch.name} entered RAGE MODE!`);showSt('🔥 RAGE MODE')}
+  if(f.hp>=MHP*0.2&&f.rageMode){f.rageMode=false}
+  const rageMult=f.rageMode?1.25:1;
+  if(f.rageMode){f.ki=Math.min(MKI,f.ki+8*dt);f.J.aura.material.opacity=0.15+Math.sin(f.animT*6)*0.1}
+
   if(f.grounded&&Math.abs(f.vel.x)>3&&Math.random()<0.03)SFX.step();
 }
 
@@ -897,7 +903,7 @@ const G={mode:'local',running:false,paused:false,round:1,p1w:0,p2w:0,timer:RNDT,
       winner.pose.spineX=-0.15;winner.pose.chestX=-0.1;winner.pose.lSX=-0.6;winner.pose.rSX=-0.6;
       winner.pose.lEX=-1.0;winner.pose.rEX=-1.0;winner.J.aura.material.opacity=0.5;winner.J.aura.scale.setScalar(1.5);
       if(this.p1w>=2||this.p2w>=2){const mw=this.p1w>=2?this.p1c.name:this.p2c.name;document.getElementById('rTi').textContent='🏆 VICTORY';document.getElementById('rDe').textContent=`${mw} WINS THE MATCH! (${this.p1w}–${this.p2w})`;UI.o('rM')}else{this.round++;this._ann(`ROUND ${this.round}`,()=>this._resetR())}},2200)},
-  _resetR(){[this.p1,this.p2].forEach(f=>{f.hp=MHP;f.ki=0;f.mana=MAX_MANA;f.vel.set(0,0,0);f.hitStun=0;f.attacking=false;f.atkType=null;f.atkFrame=0;f.combo=0;f.invuln=0;f.blocking=false;f.counterActive=false;f.parrying=false;f.sprinting=false;f.casting=false;f.shielded=false;f.perfectRound=true;f.inputBuf.length=0;f.spellCDs.fill(0);Object.assign(f.pose,mkIdlePose())});projectiles.forEach(p=>{S.remove(p.mesh)});projectiles.length=0;this.p1.pos.set(-3.5,0,0);this.p2.pos.set(3.5,0,0);this.timer=RNDT;this.tAcc=0;this.physAcc=0;this.running=true;SFX.call('FIGHT');this.lastT=performance.now();this._loop(this.lastT)},
+  _resetR(){[this.p1,this.p2].forEach(f=>{f.hp=MHP;f.ki=0;f.mana=MAX_MANA;f.vel.set(0,0,0);f.hitStun=0;f.attacking=false;f.atkType=null;f.atkFrame=0;f.combo=0;f.invuln=0;f.blocking=false;f.counterActive=false;f.parrying=false;f.sprinting=false;f.casting=false;f.shielded=false;f.perfectRound=true;f.rageMode=false;f.inputBuf.length=0;f.spellCDs.fill(0);Object.assign(f.pose,mkIdlePose())});projectiles.forEach(p=>{S.remove(p.mesh)});projectiles.length=0;this.p1.pos.set(-3.5,0,0);this.p2.pos.set(3.5,0,0);this.timer=RNDT;this.tAcc=0;this.physAcc=0;this.running=true;SFX.call('FIGHT');this.lastT=performance.now();this._loop(this.lastT)},
   rematch(){UI.cl('rM');while(S.children.length>0)S.remove(S.children[0]);vfxA.length=0;vfxP.length=0;projectiles.length=0;this._init()},
   quit(){this.running=false;UI.cl('rM');UI.cl('pM');while(S.children.length>0)S.remove(S.children[0]);vfxA.length=0;vfxP.length=0;projectiles.forEach(p=>{S.remove(p.mesh)});projectiles.length=0;Net.cleanup();UI.o('mM')},
   togglePause(){if(!this.running)return;this.paused=!this.paused;if(this.paused)UI.o('pM');else{UI.cl('pM');this.lastT=performance.now()}}};
