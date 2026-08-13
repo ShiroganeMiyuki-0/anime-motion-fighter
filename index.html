@@ -913,7 +913,7 @@ if(def.counterActive&&atk.atkType!=='grab'&&atk.atkType!=='special'&&atk.atkType
     def.perfectRound=false}
   def.hp=Math.max(0,def.hp-dmg);atk.ki=Math.min(MKI,atk.ki+(atk.atkType==='special'||atk.atkType==='ultimate'?0:12));
   // Mana steal: fighters gain small mana on hit
-  if(atk.cls==='fighter')atk.mana=Math.min(MAX_MANA,atk.mana+3);flashHP(def);return true;
+  if(atk.cls==='fighter')atk.mana=Math.min(MAX_MANA,atk.mana+3);if(atk.cls==='hybrid')atk.mana=Math.min(MAX_MANA,atk.mana+2);flashHP(def);return true;
 }
 let hitStop=0,slowMo=0,impFrame=0;
 
