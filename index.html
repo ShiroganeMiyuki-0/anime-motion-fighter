@@ -769,7 +769,11 @@ if(i.counter&&f.atkCD<=0&&!f.attacking&&f.grounded){
   if(f.atkCD<=0&&!f.blocking&&!f.counterActive&&!f.parrying){
     const rec=f.inputBuf.slice(-4);
     if(i.punch&&i.kick&&f.ki>=MKI){startAtk(f,'ultimate');f.ki=0;SFX.beam();showSt('★ ULTIMATE ★');return}
-    if(i.special&&f.ki>=MKI){if(i.down){startAtk(f,'groundSlam');f.ki=0;SFX.beam();showSt('GROUND SLAM');return}if(i.up){startAtk(f,'risingBeam');f.ki=0;SFX.beam();showSt('RISING BEAM');return}startAtk(f,'special');f.ki=0;SFX.beam();showSt('★ KI BEAM ★');return}
+    // Special cancel: can cancel normal attack into special
+if(i.special&&f.ki>=MKI&&f.attacking&&f.atkFrame>6&&f.atkType!=='special'&&f.atkType!=='ultimate'){
+  f.attacking=false;f.atkType=null;f.atkFrame=0;
+}
+if(i.special&&f.ki>=MKI){if(i.down){startAtk(f,'groundSlam');f.ki=0;SFX.beam();showSt('GROUND SLAM');return}if(i.up){startAtk(f,'risingBeam');f.ki=0;SFX.beam();showSt('RISING BEAM');return}startAtk(f,'special');f.ki=0;SFX.beam();showSt('★ KI BEAM ★');return}
     if(i.grab&&f.grounded){startAtk(f,'grab');SFX.whoosh();showSt('GRAB');return}
 
     // Fighter-specific: military CQC moves
