@@ -1106,7 +1106,10 @@ const G={mode:'local',running:false,paused:false,round:1,p1w:0,p2w:0,timer:RNDT,
   quit(){this.running=false;UI.cl('rM');UI.cl('pM');while(S.children.length>0)S.remove(S.children[0]);vfxA.length=0;vfxP.length=0;projectiles.forEach(p=>{S.remove(p.mesh)});projectiles.length=0;Net.cleanup();UI.o('mM')},
   togglePause(){if(!this.running)return;this.paused=!this.paused;if(this.paused)UI.o('pM');else{UI.cl('pM');this.lastT=performance.now()}}};
 
-document.addEventListener('keydown',e=>{if(e.code==='Escape'&&G.running)G.togglePause()});
+document.addEventListener('keydown',e=>{
+  if(e.code==='Escape'&&G.running)G.togglePause();
+  if(e.code==='F1'){e.preventDefault();const el=document.getElementById('fpsDisp');if(el)el.style.display=el.style.display==='none'?'block':'none'}
+});
 addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();R.setSize(innerWidth,innerHeight);comp.setSize(innerWidth,innerHeight)});
 /* ═══════ WEBCAM BODY TRACKING ═══════ */
 const Webcam={
