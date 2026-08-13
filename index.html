@@ -867,7 +867,14 @@ function checkHit(atk,def){
     spawnHitFX({x:(atk.pos.x+def.pos.x)/2,y:def.pos.y+1.5,z:0},0xffffff,'counter');showSt('PARRIED!');showHitT('PARRY','var(--a)');log(`${def.ch.name} PARRIED ${atk.ch.name}!`);showGrade('S');return true}
 
   // Counter
-  if(def.counterActive&&atk.atkType!=='grab'&&atk.atkType!=='special'&&atk.atkType!=='ultimate'){
+  // Throw tech: grab vs grab = tech out
+if(atk.atkType==='grab'&&def.attacking&&def.atkType==='grab'){
+  atk.hitStun=0.2;def.hitStun=0.2;atk.vel.x=-atk.facing*5;def.vel.x=-def.facing*5;
+  showHitT('THROW TECH!','var(--e)');log('THROW TECH!');camSh=0.2;
+  spawnHitFX({x:(atk.pos.x+def.pos.x)/2,y:def.pos.y+1.5,z:0},0x34d399,'counter');
+  return true;
+}
+if(def.counterActive&&atk.atkType!=='grab'&&atk.atkType!=='special'&&atk.atkType!=='ultimate'){
     def.counterActive=false;slowMo=0.15;camSh=0.4;SFX.counter();atk.hitStun=0.6;atk.vel.x=-atk.facing*8;atk.vel.y=4;atk.hp=Math.max(0,atk.hp-DMG.counter);
     spawnHitFX({x:(atk.pos.x+def.pos.x)/2,y:def.pos.y+1.5,z:0},0xffffff,'counter');showSt('COUNTERED!');showHitT('COUNTER','var(--c)');showGrade('S');return true}
 
