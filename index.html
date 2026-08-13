@@ -742,7 +742,15 @@ function procInput(f,i,dt,opp){
     for(let s=0;s<8;s++){if(i['spell'+s]){castSpell(f,s,opp);return}}
   }
 
-  if(i.counter&&f.atkCD<=0&&!f.attacking&&f.grounded){
+  // Double-tap direction = dodge
+if(f.dashCD<=0&&f.grounded&&!f.attacking){
+  const recentDirs=f.inputBuf.slice(-6).filter(r=>r.left||r.right);
+  if(recentDirs.length>=2&&recentDirs[0].left===recentDirs[1].left&&recentDirs[0].right===recentDirs[1].right){
+    const dodgeDir=recentDirs[0].left?-1:1;
+    f.vel.x=dodgeDir*DSH*0.8;f.dashCD=0.4;f.invuln=0.25;SFX.whoosh();spawnTrail(f);
+  }
+}
+if(i.counter&&f.atkCD<=0&&!f.attacking&&f.grounded){
     if(f.cls==='fighter'||f.cls==='hybrid'){f.parrying=true;f.parryT=0.25;f.atkCD=0.4;SFX.counter();showSt('PARRY');return}
     else{f.counterActive=true;f.counterT=0.3;f.atkCD=0.5;SFX.counter();showSt('COUNTER');return}
   }
