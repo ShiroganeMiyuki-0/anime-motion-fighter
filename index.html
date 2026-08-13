@@ -689,7 +689,30 @@ function updateProjectiles(dt){
     const opp=p.owner===G.p1?G.p2:G.p1;
     if(opp){
       const dist=p.mesh.position.distanceTo(new THREE.Vector3(opp.pos.x,opp.pos.y+1.5,0));
-      if(dist<1.0){
+      // Spell combo: fireball + ice = steam explosion
+    if(p.spellId==='fireball'){
+      projectiles.forEach(other=>{
+        if(other!==p&&other.spellId==='iceShard'&&other.owner===p.owner){
+          const d=p.mesh.position.distanceTo(other.mesh.position);
+          if(d<2){
+            // Steam explosion!
+            const mid={x:(p.mesh.position.x+other.mesh.position.x)/2,y:(p.mesh.position.y+other.mesh.position.y)/2,z:0};
+            spawnShockwave(mid,0xffffff);
+            for(let k=0;k<15;k++){const s=new THREE.Mesh(new THREE.SphereGeometry(0.08,4,4),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true}));s.position.copy(mid);S.add(s);vfxA.push({m:s,v:new THREE.Vector3((Math.random()-0.5)*12,Math.random()*8+3,(Math.random()-0.5)*8),life:0.5+Math.random()*0.3})}
+            // Damage opponent
+            const opp=p.owner===G.p1?G.p2:G.p1;
+            if(opp){opp.hp=Math.max(0,opp.hp-150);opp.hitStun=0.6;opp.vel.y=8;spawnDmgNum(mid,150,'#ffffff')}
+            showSt('💨 STEAM EXPLOSION!');log('SPELL COMBO: Fire+Ice = Steam Explosion! 150 dmg');
+            camSh=0.5;bloom.strength=1.0;setTimeout(()=>bloom.strength=0.5,300);
+            // Remove both projectiles
+            S.remove(p.mesh);S.remove(other.mesh);
+            p.life=0;other.life=0;
+          }
+        }
+      });
+    }
+
+    if(dist<1.0){
         // Explosion effect
         for(let j=0;j<8;j++){
           const spark=new THREE.Mesh(new THREE.SphereGeometry(0.06,4,4),new THREE.MeshBasicMaterial({color:p.color,transparent:true}));
