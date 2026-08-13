@@ -266,6 +266,16 @@ canvas#gc{position:fixed;inset:0;width:100%;height:100%;z-index:0}
     </div>
   </div>
   <button class="btn btn-p" onclick="UI.afterClass()" style="width:100%;margin-top:12px">CONTINUE →</button>
+  <div style="margin-top:12px;text-align:center">
+    <span style="font-family:'Orbitron',monospace;font-size:9px;color:#475569;letter-spacing:1px">ARENA:</span>
+    <select id="arenaSel" onchange="currentArena=parseInt(this.value)" style="background:#0c1222;border:1px solid #1a2540;border-radius:6px;padding:4px 8px;color:#94a3b8;font-size:10px;font-family:'Orbitron',monospace;outline:none">
+      <option value="0">Cyberpunk City</option>
+      <option value="1">Volcanic Arena</option>
+      <option value="2">Ice Palace</option>
+      <option value="3">Forest Shrine</option>
+      <option value="4">Void Realm</option>
+    </select>
+  </div>
 </div></div>
 
 <!-- CHAR SELECT -->
@@ -371,52 +381,41 @@ const SFX={ctx:null,init(){if(!this.ctx)this.ctx=new(AudioContext||window.webkit
 
 /* ═══════ ARENA ═══════ */
 let envP=null;
+/* ═══════ ARENA THEMES ═══════ */
+const ARENA_THEMES=[
+  {name:'Cyberpunk City',floor:0x0a0f1e,grid:0x1a2540,neon:0x38bdf8,skyT:0x0a0e1a,skyB:0x1a0a2e,bld:0x080c18},
+  {name:'Volcanic Arena',floor:0x1a0505,grid:0x3a1515,neon:0xff4500,skyT:0x1a0505,skyB:0x2a0a0a,bld:0x1a0808},
+  {name:'Ice Palace',floor:0x0a1a2e,grid:0x1a3a5e,neon:0x00bfff,skyT:0x0a1a2e,skyB:0x1a2a4e,bld:0x0a1525},
+  {name:'Forest Shrine',floor:0x0a1a0a,grid:0x1a3a1a,neon:0x34d399,skyT:0x0a150a,skyB:0x1a2a1a,bld:0x0a120a},
+  {name:'Void Realm',floor:0x0a0a1a,grid:0x1a1a3a,neon:0xa78bfa,skyT:0x050510,skyB:0x1a0a2e,bld:0x08081a},
+];
+let currentArena=0;
+
 function buildArena(){
-  const f=new THREE.Mesh(new THREE.PlaneGeometry(W+14,D+14),new THREE.MeshStandardMaterial({color:0x0a0f1e,roughness:0.1,metalness:0.9}));f.rotation.x=-Math.PI/2;f.receiveShadow=true;S.add(f);
-  S.add(new THREE.GridHelper(W,28,0x1a2540,0x0f1830).translateY(0.01));
+  const T=ARENA_THEMES[currentArena];
+  const f=new THREE.Mesh(new THREE.PlaneGeometry(W+14,D+14),new THREE.MeshStandardMaterial({color:T.floor,roughness:0.1,metalness:0.9}));f.rotation.x=-Math.PI/2;f.receiveShadow=true;S.add(f);
+  S.add(new THREE.GridHelper(W,28,T.grid,T.grid).translateY(0.01));
   const pts=[[-W/2,0.04,-D/2],[W/2,0.04,-D/2],[W/2,0.04,D/2],[-W/2,0.04,D/2],[-W/2,0.04,-D/2]].map(p=>new THREE.Vector3(...p));
-  S.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:0x38bdf8,transparent:true,opacity:0.4})));
-  const nm=new THREE.MeshBasicMaterial({color:0x38bdf8,transparent:true,opacity:0.08});
+  S.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:T.neon,transparent:true,opacity:0.4})));
+  const nm=new THREE.MeshBasicMaterial({color:T.neon,transparent:true,opacity:0.08});
   for(let x=-W/2;x<=W/2;x+=4){const s=new THREE.Mesh(new THREE.PlaneGeometry(0.04,D),nm);s.rotation.x=-Math.PI/2;s.position.set(x,0.02,0);S.add(s)}
   for(let z=-D/2;z<=D/2;z+=4){const s=new THREE.Mesh(new THREE.PlaneGeometry(W,0.04),nm);s.rotation.x=-Math.PI/2;s.position.set(0,0.02,z);S.add(s)}
-  const holo=new THREE.Mesh(new THREE.TorusGeometry(2,0.03,8,64),new THREE.MeshBasicMaterial({color:0x38bdf8,transparent:true,opacity:0.25}));holo.rotation.x=-Math.PI/2;holo.position.y=0.03;S.add(holo);
-  S.add(new THREE.Mesh(new THREE.TorusGeometry(2.5,0.02,8,64),new THREE.MeshBasicMaterial({color:0xfb7185,transparent:true,opacity:0.15})).rotateX(-Math.PI/2).translateY(0.03));
-  const pMat=new THREE.MeshStandardMaterial({color:0x1e293b,roughness:0.25,metalness:0.8});
+  const holo=new THREE.Mesh(new THREE.TorusGeometry(2,0.03,8,64),new THREE.MeshBasicMaterial({color:T.neon,transparent:true,opacity:0.25}));holo.rotation.x=-Math.PI/2;holo.position.y=0.03;S.add(holo);
+  S.add(new THREE.Mesh(new THREE.TorusGeometry(2.5,0.02,8,64),new THREE.MeshBasicMaterial({color:T.neon,transparent:true,opacity:0.15})).rotateX(-Math.PI/2).translateY(0.03));
+  const pMat=new THREE.MeshStandardMaterial({color:T.grid,roughness:0.25,metalness:0.8});
   for(let i=-1;i<=1;i+=2)for(let j=-1;j<=1;j+=2){
     const p=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.38,10,8),pMat);p.position.set(i*(W/2+2),5,j*(D/2+2));p.castShadow=true;S.add(p);
-    S.add(new THREE.Mesh(new THREE.CylinderGeometry(0.42,0.42,0.12,8),new THREE.MeshBasicMaterial({color:i*j>0?0x38bdf8:0xfb7185,transparent:true,opacity:0.9})).translateX(p.position.x).translateY(10.1).translateZ(p.position.z));
-    S.add(new THREE.PointLight(i*j>0?0x38bdf8:0xfb7185,1.5,14).translateX(p.position.x).translateY(10.3).translateZ(p.position.z));
+    S.add(new THREE.Mesh(new THREE.CylinderGeometry(0.42,0.42,0.12,8),new THREE.MeshBasicMaterial({color:i*j>0?T.neon:0xfb7185,transparent:true,opacity:0.9})).translateX(p.position.x).translateY(10.1).translateZ(p.position.z));
+    S.add(new THREE.PointLight(i*j>0?T.neon:0xfb7185,1.5,14).translateX(p.position.x).translateY(10.3).translateZ(p.position.z));
   }
-  for(let i=0;i<30;i++){const h=4+Math.random()*20,bw=1.2+Math.random()*2.5;const b=new THREE.Mesh(new THREE.BoxGeometry(bw,h,bw),new THREE.MeshStandardMaterial({color:0x080c18,roughness:0.9}));const a=Math.random()*Math.PI*2,d=22+Math.random()*18;b.position.set(Math.cos(a)*d,h/2,Math.sin(a)*d);S.add(b)}
-
-  // Skybox gradient (hemisphere-like)
+  for(let i=0;i<30;i++){const h=4+Math.random()*20,bw=1.2+Math.random()*2.5;const b=new THREE.Mesh(new THREE.BoxGeometry(bw,h,bw),new THREE.MeshStandardMaterial({color:T.bld,roughness:0.9}));const a=Math.random()*Math.PI*2,d=22+Math.random()*18;b.position.set(Math.cos(a)*d,h/2,Math.sin(a)*d);S.add(b)}
   const skyGeo=new THREE.SphereGeometry(100,16,16);
-  const skyMat=new THREE.ShaderMaterial({
-    uniforms:{topColor:{value:new THREE.Color(0x0a0e1a)},bottomColor:{value:new THREE.Color(0x1a0a2e)},offset:{value:10},exponent:{value:0.6}},
-    vertexShader:'varying vec3 vWorldPos;void main(){vec4 worldPos=modelMatrix*vec4(position,1.0);vWorldPos=worldPos.xyz;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
-    fragmentShader:'uniform vec3 topColor;uniform vec3 bottomColor;uniform float offset;uniform float exponent;varying vec3 vWorldPos;void main(){float h=normalize(vWorldPos+offset).y;float t=max(pow(max(h,0.0),exponent),0.0);gl_FragColor=vec4(mix(bottomColor,topColor,t),1.0);}',
-    side:THREE.BackSide
-  });
+  const skyMat=new THREE.ShaderMaterial({uniforms:{topColor:{value:new THREE.Color(T.skyT)},bottomColor:{value:new THREE.Color(T.skyB)},offset:{value:10},exponent:{value:0.6}},vertexShader:'varying vec3 vWorldPos;void main(){vec4 worldPos=modelMatrix*vec4(position,1.0);vWorldPos=worldPos.xyz;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',fragmentShader:'uniform vec3 topColor;uniform vec3 bottomColor;uniform float offset;uniform float exponent;varying vec3 vWorldPos;void main(){float h=normalize(vWorldPos+offset).y;float t=max(pow(max(h,0.0),exponent),0.0);gl_FragColor=vec4(mix(bottomColor,topColor,t),1.0);}',side:THREE.BackSide});
   S.add(new THREE.Mesh(skyGeo,skyMat));
-
-  // Neon signs on buildings
-  const neonColors=[0x38bdf8,0xfb7185,0xfbbf24,0xa78bfa,0x34d399];
-  for(let i=0;i<8;i++){
-    const color=neonColors[i%neonColors.length];
-    const signGeo=new THREE.PlaneGeometry(2+Math.random()*2,0.4+Math.random()*0.3);
-    const signMat=new THREE.MeshBasicMaterial({color,transparent:true,opacity:0.6});
-    const sign=new THREE.Mesh(signGeo,signMat);
-    const a=Math.random()*Math.PI*2,d=25+Math.random()*10;
-    sign.position.set(Math.cos(a)*d,3+Math.random()*6,Math.sin(a)*d);
-    sign.lookAt(0,sign.position.y,0);
-    S.add(sign);
-    // Neon light
-    const nLight=new THREE.PointLight(color,0.5,8);
-    nLight.position.copy(sign.position);
-    S.add(nLight);
-  }
+  const neonColors=[T.neon,0xfb7185,0xfbbf24,0xa78bfa,0x34d399];
+  for(let i=0;i<8;i++){const c=neonColors[i%neonColors.length];const sg=new THREE.PlaneGeometry(2+Math.random()*2,0.4+Math.random()*0.3);const sign=new THREE.Mesh(sg,new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:0.6}));const a=Math.random()*Math.PI*2,d=25+Math.random()*10;sign.position.set(Math.cos(a)*d,3+Math.random()*6,Math.sin(a)*d);sign.lookAt(0,sign.position.y,0);S.add(sign);S.add(new THREE.PointLight(c,0.5,8).copy(sign.position))}
   const pg=new THREE.BufferGeometry();const pp=new Float32Array(200*3);for(let i=0;i<600;i++){pp[i]=(Math.random()-0.5)*40;pp[i+1]=Math.random()*15;pp[i+2]=(Math.random()-0.5)*30}pg.setAttribute('position',new THREE.BufferAttribute(pp,3));
-  envP=new THREE.Points(pg,new THREE.PointsMaterial({color:0x38bdf8,size:0.05,transparent:true,opacity:0.4,sizeAttenuation:true}));S.add(envP);
+  envP=new THREE.Points(pg,new THREE.PointsMaterial({color:T.neon,size:0.05,transparent:true,opacity:0.4,sizeAttenuation:true}));S.add(envP);
 }
 function updateEnv(dt){if(!envP)return;envP.rotation.y+=dt*0.008;const p=envP.geometry.attributes.position.array;for(let i=1;i<p.length;i+=3){p[i]+=Math.sin(p[i-1]*0.5+performance.now()*0.001)*0.002;if(p[i]>15)p[i]=0}envP.geometry.attributes.position.needsUpdate=true}
 
