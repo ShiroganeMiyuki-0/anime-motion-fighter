@@ -1048,7 +1048,7 @@ const G={mode:'local',running:false,paused:false,round:1,p1w:0,p2w:0,timer:RNDT,
     // FPS tracking
     this.fpsAcc+=fdt;this.fpsCount++;
     if(this.fpsAcc>=1){this.fps=this.fpsCount;this.fpsCount=0;this.fpsAcc=0}
-    if(this.paused){comp.render();return}if(hitStop>0){hitStop-=fdt;comp.render();return}const edt=slowMo>0?fdt*0.3:fdt;if(slowMo>0)slowMo-=fdt;document.getElementById("slomoOv").classList.toggle("on",slowMo>0);if(impFrame>0){impFrame-=fdt;document.getElementById('imF').classList.add('on')}else document.getElementById('imF').classList.remove('on');
+    if(this.paused){comp.render();return}if(hitStop>0){hitStop-=fdt;comp.render();return}const edt=slowMo>0?fdt*0.3:fdt;if(slowMo>0)slowMo-=fdt;document.getElementById("slomoOv").classList.toggle("on",slowMo>0);if(impFrame>0){impFrame-=fdt;document.getElementById('imF').classList.add('on');document.getElementById('imF').style.filter=`blur(${impFrame*3}px)`}else{document.getElementById('imF').classList.remove('on');document.getElementById('imF').style.filter='none'};
     this.tAcc+=edt;if(this.tAcc>=1){this.tAcc-=1;this.timer--;if(this.timer<=0){if(this.mode==='timeattack'){this.running=false;document.getElementById('rTi').textContent='⏱️ TIME UP';document.getElementById('rDe').textContent=`${this.timeAttackKills} kills in 60 seconds!`;UI.o('rM');return}this._endR();return}}
     let i1,i2;if(this.mode==='online'){if(Net.role==='host'){i1=p1I();Net.send(i1);i2=Net.ri||mkE()}else{i2=p1I();Net.send(i2);i1=Net.ri||mkE()}}else if(this.mode==='ai'){i1=p1I();i2=aiInput(this.p2,this.p1)}else{i1=p1I();i2=p2I()}
     bufInput(this.p1,i1);bufInput(this.p2,i2);
