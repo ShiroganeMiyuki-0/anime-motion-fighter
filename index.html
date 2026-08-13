@@ -343,6 +343,7 @@ const CHARS=[
 
 /* ═══════ SPELLS ═══════ */
 const SPELLS=[
+  {id:'meteor',name:'Meteor Strike',emoji:'☄️',cost:50,cd:8,color:0xff6600,dmg:200,speed:12,proj:true,ultimate:true},
   {id:'fireball',name:'Fireball',emoji:'🔥',cost:20,cd:1.5,color:0xff4500,dmg:90,speed:18,proj:true},
   {id:'iceShard',name:'Ice Shard',emoji:'❄️',cost:15,cd:1.0,color:0x00bfff,dmg:70,speed:22,proj:true},
   {id:'lightning',name:'Lightning',emoji:'⚡',cost:35,cd:3.0,color:0xffff00,dmg:120,speed:0,proj:false,instant:true},
@@ -1257,6 +1258,7 @@ const SpellCall={
       earthSpike:{name:'💀 EARTH SPIKE!',sub:`${casterName} shatters the ground`,color:'#8b6914'},
       windSlash:{name:'✨ WIND SLASH!',sub:`${casterName} whips cutting air`,color:'#90ee90'},
       darkPulse:{name:'🌊 DARK PULSE!',sub:`${casterName} unleashes shadow energy`,color:'#4a0080'},
+      meteor:{name:'☄️ METEOR STRIKE!',sub:`${casterName} calls down destruction`,color:'#ff6600'},
     };
     const c=calls[spellId];if(c)this.show(c.name,c.sub,c.color);
   },
