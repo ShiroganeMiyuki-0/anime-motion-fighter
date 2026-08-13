@@ -744,6 +744,8 @@ function procInput(f,i,dt,opp){
   f.vel.x=0;if(i.left)f.vel.x=-ms;if(i.right)f.vel.x=ms;if(!f.grounded)f.vel.x*=0.75;
   if(i.dash&&i.block&&f.dashCD<=0&&f.grounded){f.vel.x=f.facing*DSH;f.dashCD=0.35;f.invuln=0.2;SFX.whoosh();spawnTrail(f);return}
   if(i.up&&f.grounded){f.vel.y=JF;f.grounded=false;SFX.whoosh()}
+  // Air dash (press dash while airborne)
+  if(i.dash&&!f.grounded&&f.dashCD<=0){f.vel.x=f.facing*DSH;f.vel.y=3;f.dashCD=0.5;SFX.whoosh();spawnTrail(f)}
   f.blocking=i.block&&f.grounded&&!f.attacking&&!f.sprinting;
 
   // Spells (mage/hybrid only)
