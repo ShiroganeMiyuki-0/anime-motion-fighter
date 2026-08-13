@@ -461,6 +461,22 @@ function animFighter(f,dt){
   const idle=f.hitStun<=0&&!f.attacking&&f.grounded&&!f.sprinting&&!f.casting;
   const br=Math.sin(t*2.2+f.idlePh);
 
+  // Energy trail during attacks
+  if(f.attacking&&(f.atkType==='special'||f.atkType==='ultimate'||f.atkType==='risingBeam'||f.atkType==='groundSlam')){
+    if(Math.random()<0.3){
+      const trailPos=new THREE.Vector3(f.pos.x+(Math.random()-0.5)*0.5,f.pos.y+1+Math.random()*1.5,0);
+      spawnHitFX(trailPos,f.ch.color,'punch');
+    }
+  }
+
+  // Rage aura particles
+  if(f.rageMode&&Math.random()<0.15){
+    const sparkPos=new THREE.Vector3(f.pos.x+(Math.random()-0.5)*0.8,f.pos.y+Math.random()*2.5,0);
+    const spark=new THREE.Mesh(new THREE.SphereGeometry(0.03,4,4),new THREE.MeshBasicMaterial({color:f.ch.color,transparent:true}));
+    spark.position.copy(sparkPos);S.add(spark);
+    vfxA.push({m:spark,v:new THREE.Vector3((Math.random()-0.5)*2,2+Math.random()*2,0),life:0.4+Math.random()*0.3});
+  }
+
   if(idle){p.spineX=br*0.02;p.chestX=-br*0.015;p.headX=-br*0.01;p.lSX=0;p.lSZ=0.15;p.lEX=-0.15;p.rSX=0;p.rSZ=-0.15;p.rEX=-0.15;p.lHiX=0;p.lKX=0;p.rHiX=0;p.rKX=0;p.hipsY=0;
     // Mage idle: hands forward
     if(f.cls==='mage'){p.lSX=-0.4;p.lEX=-0.6;p.rSX=-0.4;p.rEX=-0.6;p.lSZ=0.1;p.rSZ=-0.1}
