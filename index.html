@@ -1019,6 +1019,18 @@ function spawnDmgNum(pos,dmg,color){
 function flashHP(f){const b=f.idx===0?document.getElementById('p1H'):document.getElementById('p2H');b.classList.add('crit');setTimeout(()=>b.classList.remove('crit'),400)}
 
 /* ═══════ HUD ═══════ */
+// Input display for training
+function updateInputDisplay(f){
+  const el=document.getElementById('inputDisp');
+  if(!el||!Tutorial.active)return;
+  const i=f.lastInput;
+  const keys=[];
+  if(i.left)keys.push('←');if(i.right)keys.push('→');if(i.up)keys.push('↑');if(i.down)keys.push('↓');
+  if(i.punch)keys.push('P');if(i.kick)keys.push('K');if(i.block)keys.push('B');if(i.special)keys.push('S');
+  if(i.grab)keys.push('G');if(i.counter)keys.push('C');if(i.dash)keys.push('D');
+  el.textContent=keys.join('+')||'-';
+}
+
 function updateHUD(p1,p2){
   const p1P=p1.hp/MHP*100,p2P=p2.hp/MHP*100;
   document.getElementById('p1H').style.width=p1P+'%';document.getElementById('p2H').style.width=p2P+'%';
