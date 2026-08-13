@@ -879,7 +879,7 @@ function updateFighter(f,dt){
   if(f.hp<MHP*0.2&&!f.rageMode){f.rageMode=true;f.J.aura.material.opacity=0.2;log(`${f.ch.name} entered RAGE MODE!`);showSt('🔥 RAGE MODE');SFX.rage()}}
   if(f.hp>=MHP*0.2&&f.rageMode){f.rageMode=false}
   const rageMult=f.rageMode?1.25:1;
-  if(f.rageMode){f.ki=Math.min(MKI,f.ki+8*dt);f.J.aura.material.opacity=0.15+Math.sin(f.animT*6)*0.1}
+  if(f.rageMode){f.ki=Math.min(MKI,f.ki+8*dt);f.J.aura.material.opacity=0.15+Math.sin(f.animT*6)*0.1;f.parts?.torso?.material?.emissiveIntensity&&(f.parts.torso.material.emissiveIntensity=0.1+Math.sin(f.animT*8)*0.05)}
 
   if(f.grounded&&Math.abs(f.vel.x)>3&&Math.random()<0.03)SFX.step();
 }
