@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ANIME MOTION FIGHTER — Magic & Combat</title>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5/pose.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3/drawing_utils.js" crossorigin="anonymous"></script>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&display=swap');
@@ -156,11 +159,19 @@ canvas#gc{position:fixed;inset:0;width:100%;height:100%;z-index:0}
   <div class="sp" id="sp7">🌊<span class="bind">8</span></div>
 </div>
 
+<!-- Webcam PiP -->
+<video id="wcV" style="display:none" playsinline></video>
+<div id="wcPiP" style="display:none;position:fixed;bottom:80px;left:10px;z-index:20;width:200px;height:150px;background:#0c1222;border:2px solid #1e293b;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.5)">
+  <canvas id="wcC" width="320" height="240" style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1)"></canvas>
+  <div style="position:absolute;top:4px;left:6px;font-family:'Orbitron',monospace;font-size:8px;color:#38bdf8;letter-spacing:1px;background:rgba(0,0,0,.6);padding:2px 6px;border-radius:4px">WEBCAM TRACKER</div>
+  <div id="wcStatus" style="position:absolute;bottom:4px;left:6px;font-family:'Orbitron',monospace;font-size:7px;color:#34d399;letter-spacing:1px;background:rgba(0,0,0,.6);padding:2px 6px;border-radius:4px">TRACKING</div>
+</div>
+
 <div id="bm">
   <div id="lg"></div>
   <div class="ct">
     <kbd>WASD</kbd> Move <kbd>J</kbd><kbd>K</kbd> Attack <kbd>L</kbd> Block <kbd>SPC</kbd> Special<br>
-    <kbd>Shift</kbd> Sprint <kbd>Q</kbd> Grab <kbd>E</kbd> Counter <kbd>1-8</kbd> Spells <kbd>ESC</kbd> Pause
+    <kbd>Shift</kbd> Sprint <kbd>Q</kbd> Grab <kbd>E</kbd> Counter <kbd>1-8</kbd> Spells <kbd>C</kbd> Webcam <kbd>ESC</kbd> Pause
   </div>
 </div>
 
@@ -177,6 +188,7 @@ canvas#gc{position:fixed;inset:0;width:100%;height:100%;z-index:0}
     <button class="btn btn-p" onclick="UI.cs('local')" style="width:100%">🎮 LOCAL FIGHT</button>
     <button class="btn btn-a" onclick="UI.cs('online')" style="width:100%">🌐 ONLINE FIGHT</button>
     <button class="btn btn-m" onclick="UI.cs('ai')" style="width:100%">🤖 VS ADAPTIVE AI</button>
+    <button class="btn btn-s" onclick="Webcam.toggle()" style="width:100%;font-size:10px">📷 WEBCAM BODY TRACKING</button>
   </div>
   <p style="color:#1a2540;font-size:9px;margin-top:20px;font-family:'Orbitron',monospace;letter-spacing:2px">v5.0 — MAGIC + CQC ENGINE</p>
 </div></div>
@@ -481,7 +493,12 @@ document.addEventListener('keydown',e=>{K[e.code]=true;if(['Space','ArrowUp','Ar
 document.addEventListener('keyup',e=>{K[e.code]=false});
 function gpI(i){const g=navigator.getGamepads?.()||[];const p=g[i];if(!p)return null;const d=0.2;let x=p.axes[0]||0,y=p.axes[1]||0;if(Math.abs(x)<d)x=0;if(Math.abs(y)<d)y=0;return{left:x<-.3,right:x>.3,up:y<-.3,down:y>.3,punch:p.buttons[0]?.pressed,kick:p.buttons[1]?.pressed,block:p.buttons[2]?.pressed,special:p.buttons[3]?.pressed,dash:p.buttons[5]?.pressed,grab:p.buttons[4]?.pressed,counter:p.buttons[6]?.pressed}}
 function p1I(){const kb={left:K.KeyA||K.ArrowLeft,right:K.KeyD||K.ArrowRight,up:K.KeyW||K.ArrowUp,down:K.KeyS||K.ArrowDown,punch:K.KeyJ,kick:K.KeyK,block:K.KeyL,special:K.Space,dash:K.ShiftLeft||K.ShiftRight,grab:K.KeyQ,counter:K.KeyE,
-  spell0:K.Digit1,spell1:K.Digit2,spell2:K.Digit3,spell3:K.Digit4,spell4:K.Digit5,spell5:K.Digit6,spell6:K.Digit7,spell7:K.Digit8};const g=gpI(0);if(!g)return kb;return{...kb,left:kb.left||g.left,right:kb.right||g.right,up:kb.up||g.up,down:kb.down||g.down,punch:kb.punch||g.punch,kick:kb.kick||g.kick,block:kb.block||g.block,special:kb.special||g.special,dash:kb.dash||g.dash,grab:kb.grab||g.grab,counter:kb.counter||g.counter}}
+  spell0:K.Digit1,spell1:K.Digit2,spell2:K.Digit3,spell3:K.Digit4,spell4:K.Digit5,spell5:K.Digit6,spell6:K.Digit7,spell7:K.Digit8};
+  const g=gpI(0);const w=Webcam.active?Webcam.getInput():null;
+  const merged={...kb};
+  if(g)for(const k in merged)if(g[k])merged[k]=true;
+  if(w)for(const k in merged)if(w[k])merged[k]=true;
+  return merged}
 function p2I(){const kb={left:K.KeyF||K.Numpad4,right:K.KeyH||K.Numpad6,up:K.KeyT||K.Numpad8,down:K.KeyG||K.Numpad5,punch:K.KeyU||K.Numpad1,kick:K.KeyI||K.Numpad2,block:K.KeyO||K.Numpad3,special:K.KeyP||K.Numpad0,dash:K.NumpadDecimal,grab:K.KeyR,counter:K.KeyY,
   spell0:false,spell1:false,spell2:false,spell3:false,spell4:false,spell5:false,spell6:false,spell7:false};const g=gpI(1);if(!g)return kb;return{...kb,left:kb.left||g.left,right:kb.right||g.right,up:kb.up||g.up,down:kb.down||g.down}}
 function mkE(){return{left:false,right:false,up:false,down:false,punch:false,kick:false,block:false,special:false,dash:false,grab:false,counter:false,spell0:false,spell1:false,spell2:false,spell3:false,spell4:false,spell5:false,spell6:false,spell7:false}}
@@ -741,6 +758,154 @@ const G={mode:'local',running:false,paused:false,round:1,p1w:0,p2w:0,timer:RNDT,
 
 document.addEventListener('keydown',e=>{if(e.code==='Escape'&&G.running)G.togglePause()});
 addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();R.setSize(innerWidth,innerHeight);comp.setSize(innerWidth,innerHeight)});
+/* ═══════ WEBCAM BODY TRACKING ═══════ */
+const Webcam={
+  active:false,pose:null,camera:null,landmarks:null,
+  sens:0.15, // motion sensitivity threshold
+  prevNose:null,prevLWrist:null,prevRWrist:null,prevLAnkle:null,prevRAnkle:null,
+
+  async toggle(){
+    if(this.active){this.stop();return}
+    try{
+      const stream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480,facingMode:'user'}});
+      const video=document.getElementById('wcV');
+      video.srcObject=stream;await video.play();
+
+      // Init MediaPipe Pose
+      this.pose=new Pose({locateFile:(file)=>`https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5/${file}`});
+      this.pose.setOptions({modelComplexity:1,smoothLandmarks:true,minDetectionConfidence:0.6,minTrackingConfidence:0.5});
+      this.pose.onResults(r=>this.onResults(r));
+
+      this.camera=new Camera(video,{onFrame:async()=>{await this.pose.send({image:video})},width:640,height:480});
+      this.camera.start();
+
+      this.active=true;
+      document.getElementById('wcPiP').style.display='block';
+      document.getElementById('wcStatus').textContent='TRACKING';
+      document.getElementById('wcStatus').style.color='#34d399';
+      log('📷 Webcam tracking active!');
+      showSt('WEBCAM ON');
+    }catch(e){
+      console.error('Webcam error:',e);
+      log('📷 Webcam error: '+e.message);
+    }
+  },
+
+  stop(){
+    this.active=false;
+    if(this.camera){this.camera.stop();this.camera=null}
+    const video=document.getElementById('wcV');
+    if(video.srcObject){video.srcObject.getTracks().forEach(t=>t.stop());video.srcObject=null}
+    document.getElementById('wcPiP').style.display='none';
+    log('📷 Webcam tracking stopped');
+  },
+
+  onResults(results){
+    if(!this.active)return;
+    const canvas=document.getElementById('wcC');
+    const ctx=canvas.getContext('2d');
+    ctx.save();
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(results.image,0,0,canvas.width,canvas.height);
+
+    if(results.poseLandmarks){
+      this.landmarks=results.poseLandmarks;
+      // Draw skeleton
+      drawConnectors(ctx,this.landmarks,POSE_CONNECTIONS,{color:'#38bdf8',lineWidth:2});
+      drawLandmarks(ctx,this.landmarks,{color:'#fb7185',lineWidth:1,radius:3});
+
+      // Update status
+      const st=document.getElementById('wcStatus');
+      st.textContent='TRACKING ✓';st.style.color='#34d399';
+    }
+    ctx.restore();
+  },
+
+  // Convert pose landmarks to game input
+  getInput(){
+    const inp={left:false,right:false,up:false,down:false,punch:false,kick:false,block:false,special:false,dash:false,grab:false,counter:false,
+      spell0:false,spell1:false,spell2:false,spell3:false,spell4:false,spell5:false,spell6:false,spell7:false};
+    if(!this.landmarks||this.landmarks.length<33)return inp;
+
+    const lm=this.landmarks;
+    const s=this.sens; // sensitivity threshold
+
+    // Key landmarks
+    const nose=lm[0];
+    const lShoulder=lm[11],rShoulder=lm[12];
+    const lElbow=lm[13],rElbow=lm[14];
+    const lWrist=lm[15],rWrist=lm[16];
+    const lHip=lm[23],rHip=lm[24];
+    const lKnee=lm[25],rKnee=lm[26];
+    const lAnkle=lm[27],rAnkle=lm[28];
+
+    // ── MOVEMENT: Lean body left/right ──
+    const shoulderMidX=(lShoulder.x+rShoulder.x)/2;
+    const hipMidX=(lHip.x+rHip.x)/2;
+    const bodyMidX=(shoulderMidX+hipMidX)/2;
+    // Mirror: moving right in camera = move right in game
+    if(bodyMidX<0.5-s)inp.right=true;
+    if(bodyMidX>0.5+s)inp.left=true;
+
+    // ── JUMP: Raise both wrists above shoulders ──
+    const shoulderY=(lShoulder.y+rShoulder.y)/2;
+    if(lWrist.y<shoulderY-0.15&&rWrist.y<shoulderY-0.15)inp.up=true;
+
+    // ── CROUCH: Lower hips significantly ──
+    const hipY=(lHip.y+rHip.y)/2;
+    const ankleY=(lAnkle.y+rAnkle.y)/2;
+    if(hipY>0.75)inp.down=true;
+
+    // ── PUNCH: Right arm extends forward (wrist moves away from body) ──
+    if(this.prevRWrist){
+      const dx=rWrist.x-this.prevRWrist.x;
+      const speed=Math.abs(dx);
+      // Extend: wrist moves toward camera center (away from body)
+      const extend=Math.abs(rWrist.x-rShoulder.x);
+      if(extend>0.15&&rWrist.z<rShoulder.z-0.05)inp.punch=true;
+    }
+
+    // ── KICK: Left leg extends (ankle moves forward) ──
+    if(this.prevLAnkle){
+      const extend=Math.abs(lAnkle.x-lHip.x);
+      if(extend>0.15&&lAnkle.y<lKnee.y)inp.kick=true;
+    }
+
+    // ── BLOCK: Both hands in front of face ──
+    const faceY=nose.y;
+    const lDistFace=Math.sqrt((lWrist.x-nose.x)**2+(lWrist.y-faceY)**2);
+    const rDistFace=Math.sqrt((rWrist.x-nose.x)**2+(rWrist.y-faceY)**2);
+    if(lDistFace<0.12&&rDistFace<0.12)inp.block=true;
+
+    // ── SPECIAL: Both arms thrust forward together ──
+    const lExtend=Math.abs(lWrist.z-lShoulder.z);
+    const rExtend=Math.abs(rWrist.z-rShoulder.z);
+    if(lExtend>0.08&&rExtend>0.08&&lWrist.y<shoulderY&&rWrist.y<shoulderY)inp.special=true;
+
+    // ── COUNTER: Cross arms in front of chest ──
+    const crossDist=Math.abs(lWrist.x-rWrist.x);
+    if(crossDist<0.08&&lWrist.y>shoulderY-0.05&&rWrist.y>shoulderY-0.05)inp.counter=true;
+
+    // Store prev for velocity detection
+    this.prevNose={x:nose.x,y:nose.y,z:nose.z};
+    this.prevLWrist={x:lWrist.x,y:lWrist.y,z:lWrist.z};
+    this.prevRWrist={x:rWrist.x,y:rWrist.y,z:rWrist.z};
+    this.prevLAnkle={x:lAnkle.x,y:lAnkle.y,z:lAnkle.z};
+    this.prevRAnkle={x:rAnkle.x,y:rAnkle.y,z:rAnkle.z};
+
+    return inp;
+  }
+};
+
+// Wire webcam input into p1I
+const _origP1I=p1I;
+window._webcamActive=false;
+// Override p1I to include webcam
+const _p1IRef=p1I;
+
+window.addEventListener('keydown',e=>{if(e.code==='KeyC'&&!e.repeat)Webcam.toggle()});
+
+window.Webcam=Webcam;
 window.UI=UI;window.G=G;window.Net=Net;
 </script>
 </body>
