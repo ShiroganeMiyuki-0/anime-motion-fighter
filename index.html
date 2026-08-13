@@ -416,7 +416,12 @@ function buildArena(){
   const f=new THREE.Mesh(new THREE.PlaneGeometry(W+14,D+14),new THREE.MeshStandardMaterial({color:T.floor,roughness:0.1,metalness:0.9}));f.rotation.x=-Math.PI/2;f.receiveShadow=true;S.add(f);
   S.add(new THREE.GridHelper(W,28,T.grid,T.grid).translateY(0.01));
   const pts=[[-W/2,0.04,-D/2],[W/2,0.04,-D/2],[W/2,0.04,D/2],[-W/2,0.04,D/2],[-W/2,0.04,-D/2]].map(p=>new THREE.Vector3(...p));
-  S.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:T.neon,transparent:true,opacity:0.4})));
+  // Animated border
+const borderLine=new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:T.neon,transparent:true,opacity:0.4}));
+S.add(borderLine);
+// Store for animation
+if(!window._arenaBorders)window._arenaBorders=[];
+_arenaBorders.push(borderLine);
   const nm=new THREE.MeshBasicMaterial({color:T.neon,transparent:true,opacity:0.08});
   for(let x=-W/2;x<=W/2;x+=4){const s=new THREE.Mesh(new THREE.PlaneGeometry(0.04,D),nm);s.rotation.x=-Math.PI/2;s.position.set(x,0.02,0);S.add(s)}
   for(let z=-D/2;z<=D/2;z+=4){const s=new THREE.Mesh(new THREE.PlaneGeometry(W,0.04),nm);s.rotation.x=-Math.PI/2;s.position.set(0,0.02,z);S.add(s)}
