@@ -829,7 +829,16 @@ function updateCam(p1,p2,dt){const mx=(p1.pos.x+p2.pos.x)/2,my=Math.max(p1.pos.y
 const vfxP=[],vfxA=[];
 function getVFX(g,m){let o=vfxP.pop();if(o){o.geometry.dispose();o.material.dispose()}o=new THREE.Mesh(g,m);S.add(o);return o}
 function retVFX(o){S.remove(o);vfxP.push(o)}
-function spawnHitFX(pos,color,type='punch'){const c=new THREE.Color(color);const n=type==='special'||type==='ultimate'?22:10;for(let i=0;i<n;i++){const s=type==='special'||type==='ultimate'?0.04+Math.random()*0.06:0.03+Math.random()*0.04;const m=getVFX(new THREE.SphereGeometry(s,4,4),new THREE.MeshBasicMaterial({color:c,transparent:true}));m.position.set(pos.x+(Math.random()-0.5)*0.6,pos.y+(Math.random()-0.5)*0.6,pos.z);vfxA.push({m,v:new THREE.Vector3((Math.random()-0.5)*10,Math.random()*6+2,(Math.random()-0.5)*6),life:0.35+Math.random()*0.25})}const r=getVFX(new THREE.RingGeometry(0.1,0.5,16),new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:0.9,side:THREE.DoubleSide}));r.position.set(pos.x,pos.y,pos.z);vfxA.push({m:r,v:new THREE.Vector3,life:0.22,isRing:true,sc:1})}
+function spawnHitFX(pos,color,type='punch'){const c=new THREE.Color(color);const n=type==='special'||type==='ultimate'?24:10;
+  // Main burst
+  for(let i=0;i<n;i++){const s=type==='special'||type==='ultimate'?0.04+Math.random()*0.06:0.03+Math.random()*0.04;const m=getVFX(new THREE.SphereGeometry(s,4,4),new THREE.MeshBasicMaterial({color:c,transparent:true}));m.position.set(pos.x+(Math.random()-0.5)*0.6,pos.y+(Math.random()-0.5)*0.6,pos.z);vfxA.push({m,v:new THREE.Vector3((Math.random()-0.5)*10,Math.random()*6+2,(Math.random()-0.5)*6),life:0.35+Math.random()*0.25})}
+  // Ring flash
+  const r=getVFX(new THREE.RingGeometry(0.1,0.5,16),new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:0.9,side:THREE.DoubleSide}));r.position.set(pos.x,pos.y,pos.z);vfxA.push({m:r,v:new THREE.Vector3,life:0.22,isRing:true,sc:1});
+  // Directional sparks (4 cardinal directions)
+  for(let i=0;i<4;i++){const angle=i*Math.PI/2;const spark=getVFX(new THREE.BoxGeometry(0.03,0.03,0.15),new THREE.MeshBasicMaterial({color:c,transparent:true}));spark.position.set(pos.x,pos.y+1.5,pos.z);spark.rotation.z=angle;vfxA.push({m:spark,v:new THREE.Vector3(Math.cos(angle)*6,Math.sin(angle)*6+2,0),life:0.3});}
+  // Flash light
+  const flash=new THREE.PointLight(color,3,4);flash.position.set(pos.x,pos.y+1.5,pos.z);S.add(flash);setTimeout(()=>S.remove(flash),80);
+}
 function spawnBlockFX(pos){for(let i=0;i<5;i++){const m=getVFX(new THREE.BoxGeometry(0.06,0.06,0.06),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true}));m.position.set(pos.x+(Math.random()-0.5)*0.4,pos.y+1.5+(Math.random()-0.5)*0.3,0);vfxA.push({m,v:new THREE.Vector3((Math.random()-0.5)*5,Math.random()*3+1,0),life:0.15+Math.random()*0.1})}}
 function spawnShockwave(pos,color){const r=getVFX(new THREE.TorusGeometry(0.5,0.1,8,32),new THREE.MeshBasicMaterial({color:new THREE.Color(color),transparent:true,opacity:0.9}));r.position.set(pos.x,pos.y,pos.z);r.rotation.x=Math.PI/2;vfxA.push({m:r,v:new THREE.Vector3,life:0.45,isWave:true,sc:1});
   // Arena reaction: floor ripple
