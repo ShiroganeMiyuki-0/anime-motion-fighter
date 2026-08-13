@@ -832,7 +832,7 @@ function checkHit(atk,def){
   if(atk.combo>1)dmg*=(1+(atk.combo-1)*0.05);
   if(atk.ch.style==='Aggressive')dmg*=1.12;if(atk.ch.style==='Power')dmg*=1.18;if(atk.ch.style==='Speed')dmg*=0.92;if(def.ch.style==='Defensive')dmg*=0.88;
 
-  if(def.blocking||def.shielded){dmg*=(def.shielded?0.05:BLKR);camSh=0.12;SFX.block();spawnBlockFX(def);log(`${def.ch.name} ${def.shielded?'SHIELD':'BLOCKED'}!`);showHitT(def.shielded?'SHIELDED':'BLOCKED','var(--c)');def.perfectRound=false}
+  if(def.blocking||def.shielded){dmg*=(def.shielded?0.05:BLKR);camSh=0.12;SFX.block();spawnBlockFX(def);log(`${def.ch.name} ${def.shielded?'SHIELD':'BLOCKED'}!`);showHitT(def.shielded?'SHIELDED':'BLOCKED','var(--c)');def.perfectRound=false;atk.hitStun=0.1;atk.vel.x=-atk.facing*3}
   else{camSh=atk.atkType==='ultimate'?0.7:atk.atkType==='special'?0.55:atk.atkType==='throw'?0.4:atk.atkType==='counter'?0.45:0.25;def.hitStun=atk.atkType==='special'?0.5:atk.atkType==='ultimate'?0.6:atk.atkType==='throw'?0.5:0.2;def.invuln=0.05;
     def.vel.x=atk.facing*(atk.atkType==='special'?15:atk.atkType==='ultimate'?18:atk.atkType==='throw'?12:6);
     if(atk.atkType==='special'||atk.atkType==='ultimate')def.vel.y=7;if(atk.atkType==='launcher'||atk.atkType==='uppercut')def.vel.y=10;if(atk.atkType==='risingKick'||atk.atkType==='risingBeam')def.vel.y=8;
