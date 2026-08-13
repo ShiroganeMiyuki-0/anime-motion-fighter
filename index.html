@@ -129,6 +129,17 @@ canvas#gc{position:fixed;inset:0;width:100%;height:100%;z-index:0}
 #rnTx{font-family:'Orbitron',monospace;font-size:50px;font-weight:900;color:#fff;text-shadow:0 0 30px rgba(255,255,255,.4);letter-spacing:8px}
 
 @media(max-width:700px){.hp-box{min-width:120px;padding:6px 10px}#tT{font-size:24px}.nm{font-size:9px}.bo{height:10px}.cg{grid-template-columns:repeat(4,1fr)}#koTx{font-size:60px}#spBar{bottom:50px}.sp{width:34px;height:34px;font-size:14px}}
+
+/* Touch controls */
+#touchCtrl{display:none;position:fixed;bottom:0;left:0;right:0;z-index:15;pointer-events:none;padding:12px}
+@media(pointer:coarse){#touchCtrl{display:flex;justify-content:space-between;align-items:flex-end}}
+#touchDpad{pointer-events:auto;display:flex;flex-direction:column;align-items:center;gap:4px}
+#touchDpad .row{display:flex;gap:4px}
+.touchBtn{width:52px;height:52px;background:rgba(30,41,59,.7);border:2px solid rgba(56,189,248,.3);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:18px;color:#94a3b8;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);touch-action:none;user-select:none;-webkit-user-select:none}
+.touchBtn:active,.touchBtn.pressed{background:rgba(56,189,248,.3);border-color:var(--c);color:#fff;transform:scale(.9)}
+.touchBtn.atk{border-color:rgba(251,113,133,.3)}.touchBtn.atk:active,.touchBtn.atk.pressed{background:rgba(251,113,133,.3);border-color:var(--r)}
+.touchBtn.sp{border-color:rgba(167,139,250,.3);width:44px;height:44px;font-size:14px}.touchBtn.sp:active,.touchBtn.sp.pressed{background:rgba(167,139,250,.3);border-color:var(--v)}
+#touchActions{pointer-events:auto;display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;max-width:180px}
 </style>
 </head>
 <body>
@@ -192,6 +203,27 @@ canvas#gc{position:fixed;inset:0;width:100%;height:100%;z-index:0}
 <div id="grade"><div id="grL"></div></div>
 <div id="spellCall"><div class="sName" id="sName"></div><div class="sSub" id="sSub"></div></div>
 <div id="voiceInd"><div class="dot"></div><span>VOICE:</span><span class="heard" id="voiceHeard">---</span></div>
+
+<!-- Touch Controls (mobile) -->
+<div id="touchCtrl">
+  <div id="touchDpad">
+    <div class="row"><div class="touchBtn" data-key="up">↑</div></div>
+    <div class="row"><div class="touchBtn" data-key="left">←</div><div class="touchBtn" data-key="down">↓</div><div class="touchBtn" data-key="right">→</div></div>
+  </div>
+  <div id="touchActions">
+    <div class="touchBtn atk" data-key="punch">👊</div>
+    <div class="touchBtn atk" data-key="kick">🦶</div>
+    <div class="touchBtn" data-key="block">🛡️</div>
+    <div class="touchBtn" data-key="counter">↩️</div>
+    <div class="touchBtn atk" data-key="grab">🤏</div>
+    <div class="touchBtn" data-key="dash">💨</div>
+    <div class="touchBtn" data-key="special">⚡</div>
+    <div class="touchBtn sp" data-key="spell0">🔥</div>
+    <div class="touchBtn sp" data-key="spell1">❄️</div>
+    <div class="touchBtn sp" data-key="spell2">⚡</div>
+  </div>
+</div>
+
 <div id="koO"><div id="koTx">K.O.</div></div>
 <div id="rnO"><div id="rnTx"></div></div>
 
@@ -206,6 +238,8 @@ canvas#gc{position:fixed;inset:0;width:100%;height:100%;z-index:0}
     <button class="btn btn-m" onclick="UI.cs('ai')" style="width:100%">🤖 VS ADAPTIVE AI</button>
     <button class="btn btn-s" onclick="Webcam.toggle()" style="width:100%;font-size:10px">📷 WEBCAM BODY TRACKING</button>
     <button class="btn btn-s" onclick="Voice.toggle()" style="width:100%;font-size:10px">🎤 VOICE SPELL CASTING</button>
+    <button class="btn btn-s" onclick="Tutorial.start()" style="width:100%;font-size:10px">📖 TUTORIAL / TRAINING</button>
+    <button class="btn btn-s" onclick="BGM.toggle()" style="width:100%;font-size:10px">🎵 TOGGLE MUSIC (M)</button>
   </div>
   <p style="color:#1a2540;font-size:9px;margin-top:20px;font-family:'Orbitron',monospace;letter-spacing:2px">v5.0 — MAGIC + CQC ENGINE</p>
 </div></div>
@@ -511,10 +545,11 @@ document.addEventListener('keyup',e=>{K[e.code]=false});
 function gpI(i){const g=navigator.getGamepads?.()||[];const p=g[i];if(!p)return null;const d=0.2;let x=p.axes[0]||0,y=p.axes[1]||0;if(Math.abs(x)<d)x=0;if(Math.abs(y)<d)y=0;return{left:x<-.3,right:x>.3,up:y<-.3,down:y>.3,punch:p.buttons[0]?.pressed,kick:p.buttons[1]?.pressed,block:p.buttons[2]?.pressed,special:p.buttons[3]?.pressed,dash:p.buttons[5]?.pressed,grab:p.buttons[4]?.pressed,counter:p.buttons[6]?.pressed}}
 function p1I(){const kb={left:K.KeyA||K.ArrowLeft,right:K.KeyD||K.ArrowRight,up:K.KeyW||K.ArrowUp,down:K.KeyS||K.ArrowDown,punch:K.KeyJ,kick:K.KeyK,block:K.KeyL,special:K.Space,dash:K.ShiftLeft||K.ShiftRight,grab:K.KeyQ,counter:K.KeyE,
   spell0:K.Digit1,spell1:K.Digit2,spell2:K.Digit3,spell3:K.Digit4,spell4:K.Digit5,spell5:K.Digit6,spell6:K.Digit7,spell7:K.Digit8};
-  const g=gpI(0);const w=Webcam.active?Webcam.getInput():null;
+  const g=gpI(0);const w=Webcam.active?Webcam.getInput():null;const t=Touch.getInput();
   const merged={...kb};
   if(g)for(const k in merged)if(g[k])merged[k]=true;
   if(w)for(const k in merged)if(w[k])merged[k]=true;
+  if(t)for(const k in merged)if(t[k])merged[k]=true;
   return merged}
 function p2I(){const kb={left:K.KeyF||K.Numpad4,right:K.KeyH||K.Numpad6,up:K.KeyT||K.Numpad8,down:K.KeyG||K.Numpad5,punch:K.KeyU||K.Numpad1,kick:K.KeyI||K.Numpad2,block:K.KeyO||K.Numpad3,special:K.KeyP||K.Numpad0,dash:K.NumpadDecimal,grab:K.KeyR,counter:K.KeyY,
   spell0:false,spell1:false,spell2:false,spell3:false,spell4:false,spell5:false,spell6:false,spell7:false};const g=gpI(1);if(!g)return kb;return{...kb,left:kb.left||g.left,right:kb.right||g.right,up:kb.up||g.up,down:kb.down||g.down}}
@@ -761,7 +796,7 @@ const G={mode:'local',running:false,paused:false,round:1,p1w:0,p2w:0,timer:RNDT,
     this.physAcc+=edt;while(this.physAcc>=PHYS_DT){procInput(this.p1,i1,PHYS_DT,this.p2);procInput(this.p2,i2,PHYS_DT,this.p1);updateFighter(this.p1,PHYS_DT);updateFighter(this.p2,PHYS_DT);if(this.p1.hitStun<=0)this.p1.facing=this.p1.pos.x<this.p2.pos.x?1:-1;if(this.p2.hitStun<=0)this.p2.facing=this.p2.pos.x<this.p1.pos.x?1:-1;const ov=1.3-Math.abs(this.p1.pos.x-this.p2.pos.x);if(ov>0){const h=ov/2;if(this.p1.pos.x<this.p2.pos.x){this.p1.pos.x-=h;this.p2.pos.x+=h}else{this.p1.pos.x+=h;this.p2.pos.x-=h}}if(checkHit(this.p1,this.p2))spawnHitFX(this.p2.pos,this.p1.ch.color,this.p1.atkType);if(checkHit(this.p2,this.p1))spawnHitFX(this.p1.pos,this.p2.ch.color,this.p2.atkType);this.physAcc-=PHYS_DT}
     updateProjectiles(fdt);
     if(this.p1.hp<=0||this.p2.hp<=0){this._endR();return}
-    animFighter(this.p1,fdt);animFighter(this.p2,fdt);updateCam(this.p1,this.p2,fdt);updateVFX(fdt);updateEnv(fdt);updateHUD(this.p1,this.p2);showCombo(Math.max(this.p1.combo,this.p2.combo));
+    animFighter(this.p1,fdt);animFighter(this.p2,fdt);updateCam(this.p1,this.p2,fdt);updateVFX(fdt);updateEnv(fdt);updateHUD(this.p1,this.p2);showCombo(Math.max(this.p1.combo,this.p2.combo));if(Tutorial.active)Tutorial.update(this.p1,fdt);
     const big=(this.p1.attacking&&(this.p1.atkType==='special'||this.p1.atkType==='ultimate'))||(this.p2.attacking&&(this.p2.atkType==='special'||this.p2.atkType==='ultimate'));bloom.strength=big?0.9:0.5;comp.render()},
   _endR(){this.running=false;this.koTime=1;const w=this.p1.hp>this.p2.hp?1:2;if(w===1)this.p1w++;else this.p2w++;updateWD();SFX.ko();SFX.call('K.O.!');camSh=0.65;document.getElementById('koO').classList.add('on');document.getElementById('hF').classList.add('on');setTimeout(()=>document.getElementById('hF').classList.remove('on'),80);updateCam(this.p1,this.p2,0.016);comp.render();const winner=w===1?this.p1:this.p2;if(winner.perfectRound){showGrade('S+');log('★ PERFECT ROUND ★')}
     setTimeout(()=>{document.getElementById('koO').classList.remove('on');if(this.p1w>=2||this.p2w>=2){const mw=this.p1w>=2?this.p1c.name:this.p2c.name;document.getElementById('rTi').textContent='🏆 VICTORY';document.getElementById('rDe').textContent=`${mw} WINS THE MATCH! (${this.p1w}–${this.p2w})`;UI.o('rM')}else{this.round++;this._ann(`ROUND ${this.round}`,()=>this._resetR())}},2200)},
@@ -1084,6 +1119,151 @@ const Voice={
 
 window.addEventListener('keydown',e=>{if(e.code==='KeyV'&&!e.repeat)Voice.toggle()});
 window.Voice=Voice;
+
+/* ═══════ TOUCH CONTROLS ═══════ */
+const Touch={
+  active:{},
+  init(){
+    document.querySelectorAll('.touchBtn').forEach(btn=>{
+      const key=btn.dataset.key;
+      const start=()=>{this.active[key]=true;btn.classList.add('pressed')};
+      const end=()=>{this.active[key]=false;btn.classList.remove('pressed')};
+      btn.addEventListener('touchstart',e=>{e.preventDefault();start()},{passive:false});
+      btn.addEventListener('touchend',e=>{e.preventDefault();end()},{passive:false});
+      btn.addEventListener('touchcancel',e=>{end()});
+      // Mouse fallback for testing
+      btn.addEventListener('mousedown',e=>{e.preventDefault();start()});
+      btn.addEventListener('mouseup',e=>{end()});
+      btn.addEventListener('mouseleave',e=>{end()});
+    });
+  },
+  getInput(){
+    return{
+      left:this.active.left||false,right:this.active.right||false,
+      up:this.active.up||false,down:this.active.down||false,
+      punch:this.active.punch||false,kick:this.active.kick||false,
+      block:this.active.block||false,special:this.active.special||false,
+      dash:this.active.dash||false,grab:this.active.grab||false,
+      counter:this.active.counter||false,
+      spell0:this.active.spell0||false,spell1:this.active.spell1||false,
+      spell2:this.active.spell2||false,spell3:this.active.spell3||false,
+      spell4:this.active.spell4||false,spell5:this.active.spell5||false,
+      spell6:this.active.spell6||false,spell7:this.active.spell7||false,
+    };
+  }
+};
+Touch.init();
+
+// Wire touch into p1I
+const _origP1I=p1I;
+
+window.Touch=Touch;
+
+/* ═══════ BACKGROUND MUSIC ═══════ */
+const BGM={
+  ctx:null,playing:false,nodes:[],
+  toggle(){
+    if(this.playing){this.stop();return}
+    this.start();
+  },
+  start(){
+    this.init();
+    const c=this.ctx;
+    // Ambient battle drone + rhythmic pulse
+    const baseFreq=55; // A1
+    // Drone
+    const drone=c.createOscillator();drone.type='sawtooth';drone.frequency.value=baseFreq;
+    const droneGain=c.createGain();droneGain.gain.value=0.04;
+    const droneFilter=c.createBiquadFilter();droneFilter.type='lowpass';droneFilter.frequency.value=200;
+    drone.connect(droneFilter).connect(droneGain).connect(c.destination);
+    drone.start();this.nodes.push(drone,droneGain,droneFilter);
+
+    // Sub bass pulse
+    const sub=c.createOscillator();sub.type='sine';sub.frequency.value=baseFreq/2;
+    const subGain=c.createGain();subGain.gain.value=0.06;
+    // LFO for pulse
+    const lfo=c.createOscillator();lfo.type='sine';lfo.frequency.value=2; // 2Hz pulse
+    const lfoGain=c.createGain();lfoGain.gain.value=0.03;
+    lfo.connect(lfoGain).connect(subGain.gain);
+    sub.connect(subGain).connect(c.destination);
+    lfo.start();sub.start();this.nodes.push(sub,lfo,subGain,lfoGain);
+
+    // High ambient pad
+    const pad=c.createOscillator();pad.type='triangle';pad.frequency.value=220;
+    const padGain=c.createGain();padGain.gain.value=0.015;
+    const padFilter=c.createBiquadFilter();padFilter.type='bandpass';padFilter.frequency.value=400;padFilter.Q.value=2;
+    pad.connect(padFilter).connect(padGain).connect(c.destination);
+    pad.start();this.nodes.push(pad,padGain,padFilter);
+
+    // Rhythmic hi-hat noise
+    const scheduleHit=()=>{
+      if(!this.playing)return;
+      const now=c.currentTime;
+      const buf=c.createBuffer(1,c.sampleRate*0.03|0,c.sampleRate);
+      const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/(d.length*0.1));
+      const src=c.createBufferSource();src.buffer=buf;
+      const g=c.createGain();g.gain.setValueAtTime(0.02,now);g.gain.exponentialRampToValueAtTime(0.001,now+0.03);
+      src.connect(g).connect(c.destination);src.start();
+      setTimeout(scheduleHit,500+Math.random()*200);
+    };
+    scheduleHit();
+
+    this.playing=true;
+    log('🎵 Battle music ON');
+  },
+  stop(){
+    this.playing=false;
+    this.nodes.forEach(n=>{try{n.stop?.();n.disconnect?.()}catch{}});
+    this.nodes.length=0;
+    log('🎵 Battle music OFF');
+  },
+  init(){if(!this.ctx)this.ctx=new(AudioContext||window.webkitAudioContext)()}
+};
+window.addEventListener('keydown',e=>{if(e.code==='KeyM'&&!e.repeat)BGM.toggle()});
+window.BGM=BGM;
+
+/* ═══════ TUTORIAL MODE ═══════ */
+const Tutorial={
+  active:false,step:0,completed:[],
+  steps:[
+    {text:'Move LEFT and RIGHT',check:f=>Math.abs(f.vel.x)>2,duration:3},
+    {text:'JUMP!',check:f=>!f.grounded,duration:2},
+    {text:'PUNCH the dummy!',check:f=>f.attacking&&f.atkType==='punch',duration:3},
+    {text:'KICK the dummy!',check:f=>f.attacking&&f.atkType==='kick',duration:3},
+    {text:'BLOCK an attack!',check:f=>f.blocking,duration:3},
+    {text:'Sprint forward (SHIFT+MOVE)!',check:f=>f.sprinting,duration:3},
+    {text:'Use a COUNTER (E key)!',check:f=>f.counterActive||f.parrying,duration:3},
+    {text:'Cast FIREBALL (press 1)!',check:f=>f.casting&&f.castType==='fireball',duration:3},
+    {text:'Build KI and use SPECIAL (SPACE)!',check:f=>f.attacking&&f.atkType==='special',duration:4},
+    {text:'★ Training Complete! ★',check:()=>true,duration:3},
+  ],
+  start(){
+    this.active=true;this.step=0;this.completed=new Array(this.steps.length).fill(false);
+    G.mode='tutorial';
+    // Start game with dummy opponent
+    G.start();
+    // Make P2 a stationary dummy
+    G.p2.hp=MHP*10; // infinite HP dummy
+    log('📖 Tutorial started!');
+    showSt('TUTORIAL MODE');
+  },
+  update(f,dt){
+    if(!this.active)return;
+    const s=this.steps[this.step];
+    if(!s){this.active=false;showSt('TUTORIAL COMPLETE!');return}
+    // Show instruction
+    document.getElementById('stT').textContent=s.text;
+    document.getElementById('stT').classList.add('show');
+    // Check completion
+    if(s.check(f)&&!this.completed[this.step]){
+      this.completed[this.step]=true;
+      setTimeout(()=>{this.step++;if(this.step>=this.steps.length){this.active=false;showSt('★ TUTORIAL COMPLETE! ★');log('📖 Tutorial finished!')}},s.duration*1000);
+    }
+  }
+};
+window.Tutorial=Tutorial;
+
+// Add tutorial button to menu
 
 window.Webcam=Webcam;
 window.UI=UI;window.G=G;window.Net=Net;
