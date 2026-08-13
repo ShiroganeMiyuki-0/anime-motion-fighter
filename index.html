@@ -952,6 +952,15 @@ function spawnTrail(f){const g=getVFX(new THREE.BoxGeometry(0.8,2,0.4),new THREE
 function updateVFX(dt){for(let i=vfxA.length-1;i>=0;i--){const p=vfxA[i];p.life-=dt;if(p.life<=0){retVFX(p.m);vfxA.splice(i,1);continue}if(p.isRing){p.sc+=dt*14;p.m.scale.setScalar(p.sc);p.m.material.opacity=p.life*3}else if(p.isWave){p.sc+=dt*20;p.m.scale.setScalar(p.sc);p.m.material.opacity=p.life*1.8}else if(p.isDmgNum){p.v.y+=dt*2;p.m.position.addScaledVector(p.v,dt);p.m.material.opacity=p.life*2}else{p.v.y+=GRAV*0.4*dt;p.m.position.addScaledVector(p.v,dt)}p.m.material.opacity=Math.min(p.m.material.opacity,p.life*2.5)}}
 
 // Floating damage numbers
+// Damage indicator arrows
+function spawnDmgIndicator(pos,fromLeft){
+  const arrow=new THREE.Mesh(new THREE.ConeGeometry(0.1,0.3,4),new THREE.MeshBasicMaterial({color:0xff0000,transparent:true,opacity:0.6}));
+  arrow.position.set(pos.x,pos.y+2.5,0);
+  arrow.rotation.z=fromLeft?-Math.PI/2:Math.PI/2;
+  S.add(arrow);
+  vfxA.push({m:arrow,v:new THREE.Vector3(fromLeft?-2:2,0,0),life:0.5});
+}
+
 function spawnDmgNum(pos,dmg,color){
   const canvas=document.createElement('canvas');canvas.width=128;canvas.height=64;
   const ctx=canvas.getContext('2d');
