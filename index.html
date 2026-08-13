@@ -495,20 +495,28 @@ function animFighter(f,dt){
 /* ═══════ PROJECTILES ═══════ */
 const projectiles=[];
 function spawnProjectile(from,to,spell,owner){
-  const geo=new THREE.SphereGeometry(0.2,8,8);
-  const mat=new THREE.MeshBasicMaterial({color:spell.color,transparent:true,opacity:0.9});
+  const geo=new THREE.SphereGeometry(0.22,12,12);
+  const mat=new THREE.MeshBasicMaterial({color:spell.color,transparent:true,opacity:0.95});
   const mesh=new THREE.Mesh(geo,mat);
   mesh.position.set(from.x,from.y+1.5,0);
   S.add(mesh);
-  // Glow
-  const glow=new THREE.Mesh(new THREE.SphereGeometry(0.4,8,8),new THREE.MeshBasicMaterial({color:spell.color,transparent:true,opacity:0.3}));
+  // Glow shell
+  const glow=new THREE.Mesh(new THREE.SphereGeometry(0.45,12,12),new THREE.MeshBasicMaterial({color:spell.color,transparent:true,opacity:0.25}));
   mesh.add(glow);
-  // Trail
-  const trail=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.15,0.8,6),new THREE.MeshBasicMaterial({color:spell.color,transparent:true,opacity:0.5}));
-  trail.rotation.x=Math.PI/2;trail.position.z=-0.4;mesh.add(trail);
+  // Inner core
+  const core=new THREE.Mesh(new THREE.SphereGeometry(0.1,8,8),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.8}));
+  mesh.add(core);
+  // Trail particles
+  const trailGeo=new THREE.CylinderGeometry(0.06,0.18,1.2,8);
+  const trailMat=new THREE.MeshBasicMaterial({color:spell.color,transparent:true,opacity:0.4});
+  const trail=new THREE.Mesh(trailGeo,trailMat);
+  trail.rotation.x=Math.PI/2;trail.position.z=-0.6;mesh.add(trail);
+  // Point light for glow
+  const light=new THREE.PointLight(spell.color,1.5,5);
+  mesh.add(light);
 
   const dir=new THREE.Vector3(to.x-from.x,to.y-from.y+1.5,0).normalize();
-  projectiles.push({mesh,dir,speed:spell.speed,dmg:spell.dmg,owner,life:3,color:spell.color,spellId:spell.id});
+  projectiles.push({mesh,dir,speed:spell.speed,dmg:spell.dmg,owner,life:3.5,color:spell.color,spellId:spell.id});
 }
 
 function updateProjectiles(dt){
@@ -706,6 +714,7 @@ function checkHit(atk,def){
     if(atk.atkType==='ultimate')slowMo=0.3;if(atk.atkType==='counter')slowMo=0.15;impFrame=0.06;
     const hp={x:(atk.pos.x+def.pos.x)/2,y:def.pos.y+1.5,z:0};spawnHitFX(hp,atk.ch.color,atk.atkType);if(atk.atkType==='special'||atk.atkType==='ultimate')spawnShockwave(hp,atk.ch.color);
     SFX.hit(atk.atkType.includes('kick')||atk.atkType==='spinningKick'?'kick':'punch');
+    spawnDmgNum({x:def.pos.x,y:def.pos.y+1.5},dmg,atk.atkType==='special'||atk.atkType==='ultimate'?'#fbbf24':'#fb7185');
     const nm={punch:'PUNCH',kick:'KICK',launcher:'LAUNCHER ↑',sweep:'SWEEP',lowSweep:'LOW SWEEP',risingKick:'RISING KICK ↑',dashPunch:'DASH PUNCH →',airKick:'AIR KICK',grab:'GRAB',special:'★ KI BEAM ★',counter:'COUNTER',ultimate:'★★ ULTIMATE ★★',groundSlam:'↓ GROUND SLAM',risingBeam:'↑ RISING BEAM',elbow:'ELBOW STRIKE',knee:'KNEE STRIKE',headbutt:'HEADBUTT',throw:'THROW',uppercut:'UPPERCUT ↑',spinningKick:'SPINNING KICK ↻'};
     showHitT(nm[atk.atkType]||'HIT',atk.atkType==='special'||atk.atkType==='ultimate'?'var(--a)':'var(--r)');
     log(`${atk.ch.name} ${nm[atk.atkType]} → ${Math.round(dmg)} (${atk.combo} HIT)`);
@@ -795,7 +804,23 @@ function spawnShockwave(pos,color){const r=getVFX(new THREE.TorusGeometry(0.5,0.
   // Screen flash for ultimate
   if(color===0xfbbf24||color===0xff0){document.getElementById('hF').classList.add('on');setTimeout(()=>document.getElementById('hF').classList.remove('on'),60)}}
 function spawnTrail(f){const g=getVFX(new THREE.BoxGeometry(0.8,2,0.4),new THREE.MeshBasicMaterial({color:f.ch.color,transparent:true,opacity:0.25}));g.position.set(f.pos.x,f.pos.y+1.2,0);vfxA.push({m:g,v:new THREE.Vector3,life:0.25})}
-function updateVFX(dt){for(let i=vfxA.length-1;i>=0;i--){const p=vfxA[i];p.life-=dt;if(p.life<=0){retVFX(p.m);vfxA.splice(i,1);continue}if(p.isRing){p.sc+=dt*14;p.m.scale.setScalar(p.sc);p.m.material.opacity=p.life*3}else if(p.isWave){p.sc+=dt*20;p.m.scale.setScalar(p.sc);p.m.material.opacity=p.life*1.8}else{p.v.y+=GRAV*0.4*dt;p.m.position.addScaledVector(p.v,dt)}p.m.material.opacity=Math.min(p.m.material.opacity,p.life*2.5)}}
+function updateVFX(dt){for(let i=vfxA.length-1;i>=0;i--){const p=vfxA[i];p.life-=dt;if(p.life<=0){retVFX(p.m);vfxA.splice(i,1);continue}if(p.isRing){p.sc+=dt*14;p.m.scale.setScalar(p.sc);p.m.material.opacity=p.life*3}else if(p.isWave){p.sc+=dt*20;p.m.scale.setScalar(p.sc);p.m.material.opacity=p.life*1.8}else if(p.isDmgNum){p.v.y+=dt*2;p.m.position.addScaledVector(p.v,dt);p.m.material.opacity=p.life*2}else{p.v.y+=GRAV*0.4*dt;p.m.position.addScaledVector(p.v,dt)}p.m.material.opacity=Math.min(p.m.material.opacity,p.life*2.5)}}
+
+// Floating damage numbers
+function spawnDmgNum(pos,dmg,color){
+  const canvas=document.createElement('canvas');canvas.width=128;canvas.height=64;
+  const ctx=canvas.getContext('2d');
+  ctx.font='bold 36px Orbitron, monospace';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillStyle=color;ctx.strokeStyle='rgba(0,0,0,0.5)';ctx.lineWidth=3;
+  ctx.strokeText(Math.round(dmg),64,32);ctx.fillText(Math.round(dmg),64,32);
+  const tex=new THREE.CanvasTexture(canvas);
+  const mat=new THREE.SpriteMaterial({map:tex,transparent:true,opacity:1});
+  const sprite=new THREE.Sprite(mat);
+  sprite.position.set(pos.x+(Math.random()-0.5)*0.5,pos.y+2.5,0);
+  sprite.scale.setScalar(0.8);
+  S.add(sprite);
+  vfxA.push({m:sprite,v:new THREE.Vector3((Math.random()-0.5)*1,2,0),life:1.0,isDmgNum:true});
+}
 function flashHP(f){const b=f.idx===0?document.getElementById('p1H'):document.getElementById('p2H');b.classList.add('crit');setTimeout(()=>b.classList.remove('crit'),400)}
 
 /* ═══════ HUD ═══════ */
