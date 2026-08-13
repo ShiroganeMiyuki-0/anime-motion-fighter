@@ -507,7 +507,7 @@ addArenaDetails();
 
 function updateEnv(dt){
   // Pulse arena lights
-  if(window._arenaLights){const t=performance.now()*0.001;_arenaLights.forEach(l=>{l.light.intensity=l.baseIntensity*(1+Math.sin(t*2+l.phase)*0.15)})}
+  if(window._arenaLights){const t=performance.now()*0.001;_arenaLights.forEach(l=>{l.light.intensity=l.baseIntensity*(1+Math.sin(t*2+l.phase)*0.12+Math.random()*0.03)})}
   if(window._holoRings){const t=performance.now()*0.001;_holoRings.forEach(r=>{r.mesh.rotation.z=t*0.3+r.phase;r.mesh.material.opacity=0.2+Math.sin(t*1.5+r.phase)*0.08})}
   if(window._arenaCrystals){const t=performance.now()*0.001;_arenaCrystals.forEach(c=>{c.mesh.rotation.y=t*0.5+c.phase;c.mesh.rotation.x=Math.sin(t*0.3+c.phase)*0.3;c.mesh.position.y=8+Math.sin(t*0.8+c.phase)*0.5})}
   if(window._neonSigns){const t=performance.now()*0.001;_neonSigns.forEach(s=>{s.mesh.material.opacity=s.baseOpacity+Math.sin(t*2+s.phase)*0.15})}
