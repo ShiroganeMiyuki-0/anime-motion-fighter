@@ -22,8 +22,8 @@
 #voiceInd .heard{font-family:'Orbitron',monospace;font-size:10px;color:var(--a);letter-spacing:1px;font-weight:700}
 </style>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&display=swap');
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&display=swap');
 :root{--c:#38bdf8;--r:#fb7185;--a:#fbbf24;--e:#34d399;--v:#a78bfa;--m:#c084fc;--bg:#06080f;--p:rgba(10,14,26,.94);--b:#1e293b}
 html,body{height:100%;overflow:hidden;background:var(--bg);color:#e2e8f0;font-family:'Rajdhani',sans-serif;user-select:none}
 canvas#gc{position:fixed;inset:0;width:100%;height:100%;z-index:0}
@@ -444,11 +444,12 @@ _arenaBorders.push(borderLine);
   for(let i=0;i<30;i++){const h=4+Math.random()*20,bw=1.2+Math.random()*2.5;const b=new THREE.Mesh(new THREE.BoxGeometry(bw,h,bw),new THREE.MeshStandardMaterial({color:T.bld,roughness:0.9}));const a=Math.random()*Math.PI*2,d=22+Math.random()*18;b.position.set(Math.cos(a)*d,h/2,Math.sin(a)*d);S.add(b)}
   const skyGeo=new THREE.SphereGeometry(100,16,16);
   const skyMat=new THREE.ShaderMaterial({uniforms:{topColor:{value:new THREE.Color(T.skyT)},bottomColor:{value:new THREE.Color(T.skyB)},offset:{value:10},exponent:{value:0.6}},vertexShader:'varying vec3 vWorldPos;void main(){vec4 worldPos=modelMatrix*vec4(position,1.0);vWorldPos=worldPos.xyz;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',fragmentShader:'uniform vec3 topColor;uniform vec3 bottomColor;uniform float offset;uniform float exponent;varying vec3 vWorldPos;void main(){float h=normalize(vWorldPos+offset).y;float t=max(pow(max(h,0.0),exponent),0.0);gl_FragColor=vec4(mix(bottomColor,topColor,t),1.0);}',side:THREE.BackSide});
-  S.add(new THREE.Mesh(skyGeo,skyMat));
-  // Energy dome ceiling
+  S.add(// Energy dome ceiling
   const domeGeo=new THREE.SphereGeometry(W*0.6,32,16,0,Math.PI*2,0,Math.PI/2);
   const domeMat=new THREE.MeshBasicMaterial({color:T.neon,transparent:true,opacity:0.02,side:THREE.BackSide,wireframe:true});
   const dome=new THREE.Mesh(domeGeo,domeMat);dome.position.y=0.1;S.add(dome);
+
+  new THREE.Mesh(skyGeo,skyMat));
   const neonColors=[T.neon,0xfb7185,0xfbbf24,0xa78bfa,0x34d399];
   for(let i=0;i<8;i++){const c=neonColors[i%neonColors.length];const sg=new THREE.PlaneGeometry(2+Math.random()*2,0.4+Math.random()*0.3);const sign=new THREE.Mesh(sg,new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:0.6}));const a=Math.random()*Math.PI*2,d=25+Math.random()*10;sign.position.set(Math.cos(a)*d,3+Math.random()*6,Math.sin(a)*d);sign.lookAt(0,sign.position.y,0);S.add(sign);
     // Store for animation
@@ -465,6 +466,7 @@ _arenaBorders.push(borderLine);
 // Arena ground details
 let arenaDetails=[];
 function addArenaDetails(){
+  // Floating crystal above arena center
   const T=ARENA_THEMES[currentArena];
   const crystalGeo=new THREE.OctahedronGeometry(0.4,0);
   const crystalMat=new THREE.MeshBasicMaterial({color:T.neon,transparent:true,opacity:0.6,wireframe:true});
@@ -473,6 +475,7 @@ function addArenaDetails(){
   if(!window._arenaCrystals)window._arenaCrystals=[];
   _arenaCrystals.push({mesh:crystal,phase:Math.random()*Math.PI*2});
   // Small debris/rocks
+  const T=ARENA_THEMES[currentArena];
   for(let i=0;i<15;i++){
     const size=0.05+Math.random()*0.15;
     const geo=new THREE.DodecahedronGeometry(size,0);
@@ -704,9 +707,6 @@ function updateProjectiles(dt){
             // Remove both projectiles
             S.remove(p.mesh);S.remove(other.mesh);
             p.life=0}
-        }
-      });
-    }
 
     // Spell combo: lightning + wind = thunderstorm
     if(p.spellId==='lightning'||p.spellId==='windSlash'){
@@ -760,6 +760,66 @@ function updateProjectiles(dt){
           }
         }
       });
+    };other.life=0}
+
+    // Spell combo: lightning + wind = thunderstorm
+    if(p.spellId==='lightning'||p.spellId==='windSlash'){
+      projectiles.forEach(other=>{
+        if(other!==p&&other.owner===p.owner){
+          const comboPair=p.spellId==='lightning'&&other.spellId==='windSlash'||p.spellId==='windSlash'&&other.spellId==='lightning';
+          if(comboPair){
+            const d=p.mesh.position.distanceTo(other.mesh.position);
+            if(d<3){
+              const mid={x:(p.mesh.position.x+other.mesh.position.x)/2,y:5,z:0};
+              // Thunderstorm effect
+              for(let k=0;k<20;k++){
+                const bolt=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,3+Math.random()*4,4),new THREE.MeshBasicMaterial({color:0xffff00,transparent:true}));
+                bolt.position.set(mid.x+(Math.random()-0.5)*6,mid.y,mid.z+(Math.random()-0.5)*4);
+                S.add(bolt);vfxA.push({m:bolt,v:new THREE.Vector3(0,-15,0),life:0.3+Math.random()*0.2});
+              }
+              spawnShockwave(mid,0xffff00);
+              const opp=p.owner===G.p1?G.p2:G.p1;
+              if(opp){opp.hp=Math.max(0,opp.hp-180);opp.hitStun=0.7;opp.vel.y=10;spawnDmgNum(mid,180,'#ffff00')}
+              showSt('⚡ THUNDERSTORM!');log('SPELL COMBO: Lightning+Wind = Thunderstorm! 180 dmg');
+              camSh=0.6;bloom.strength=1.2;setTimeout(()=>bloom.strength=0.5,400);
+              S.remove(p.mesh);S.remove(other.mesh);p.life=0;other.life=0;
+            }
+          }
+        }
+      });
+    }
+
+    // Spell combo: meteor + fireball = inferno
+    if(p.spellId==='meteor'||p.spellId==='fireball'){
+      projectiles.forEach(other=>{
+        if(other!==p&&other.owner===p.owner){
+          const comboPair=p.spellId==='meteor'&&other.spellId==='fireball'||p.spellId==='fireball'&&other.spellId==='meteor';
+          if(comboPair){
+            const d=p.mesh.position.distanceTo(other.mesh.position);
+            if(d<3){
+              const mid={x:(p.mesh.position.x+other.mesh.position.x)/2,y:2,z:0};
+              // Inferno effect
+              for(let k=0;k<25;k++){
+                const flame=new THREE.Mesh(new THREE.ConeGeometry(0.15+Math.random()*0.2,1+Math.random()*2,6),new THREE.MeshBasicMaterial({color:Math.random()>0.5?0xff4500:0xff6600,transparent:true}));
+                flame.position.set(mid.x+(Math.random()-0.5)*4,mid.y,mid.z+(Math.random()-0.5)*3);
+                S.add(flame);vfxA.push({m:flame,v:new THREE.Vector3((Math.random()-0.5)*3,3+Math.random()*5,(Math.random()-0.5)*2),life:0.6+Math.random()*0.4});
+              }
+              spawnShockwave(mid,0xff4500);
+              const opp=p.owner===G.p1?G.p2:G.p1;
+              if(opp){opp.hp=Math.max(0,opp.hp-250);opp.hitStun=0.8;opp.vel.y=12;spawnDmgNum(mid,250,'#ff4500')}
+              showSt('🔥 INFERNO!');log('SPELL COMBO: Meteor+Fire = Inferno! 250 dmg');
+              camSh=0.7;bloom.strength=1.5;setTimeout(()=>bloom.strength=0.5,500);
+              S.remove(p.mesh);S.remove(other.mesh);p.life=0;other.life=0;
+            }
+          }
+        }
+      });
+    };
+          }
+        }
+      });
+    }
+
     if(dist<1.0){
         // Explosion effect
         for(let j=0;j<8;j++){
@@ -792,7 +852,7 @@ document.addEventListener('keyup',e=>{K[e.code]=false});
 function gpI(i){const g=navigator.getGamepads?.()||[];const p=g[i];if(!p)return null;const d=0.2;let x=p.axes[0]||0,y=p.axes[1]||0;if(Math.abs(x)<d)x=0;if(Math.abs(y)<d)y=0;return{left:x<-.3,right:x>.3,up:y<-.3,down:y>.3,punch:p.buttons[0]?.pressed,kick:p.buttons[1]?.pressed,block:p.buttons[2]?.pressed,special:p.buttons[3]?.pressed,dash:p.buttons[5]?.pressed,grab:p.buttons[4]?.pressed,counter:p.buttons[6]?.pressed}}
 function p1I(){const kb={left:K.KeyA||K.ArrowLeft,right:K.KeyD||K.ArrowRight,up:K.KeyW||K.ArrowUp,down:K.KeyS||K.ArrowDown,punch:K.KeyJ,kick:K.KeyK,block:K.KeyL,special:K.Space,dash:K.ShiftLeft||K.ShiftRight,grab:K.KeyQ,counter:K.KeyE,
   spell0:K.Digit1,spell1:K.Digit2,spell2:K.Digit3,spell3:K.Digit4,spell4:K.Digit5,spell5:K.Digit6,spell6:K.Digit7,spell7:K.Digit8};
-  const g=gpI(0);const w=Webcam.active?Webcam.getInput(PHYS_DT):null;const t=Touch.getInput();
+  const g=gpI(0);const w=Webcam.active?Webcam.getInput():null;const t=Touch.getInput();
   const merged={...kb};
   if(g)for(const k in merged)if(g[k])merged[k]=true;
   if(w)for(const k in merged)if(w[k])merged[k]=true;
@@ -1265,7 +1325,7 @@ const G={mode:'local',running:false,paused:false,round:1,p1w:0,p2w:0,timer:RNDT,
     if(this.mode==='tutorial'&&this.p2.hp<99999)this.p2.hp=99999;
   };
     const big=(this.p1.attacking&&(this.p1.atkType==='special'||this.p1.atkType==='ultimate'))||(this.p2.attacking&&(this.p2.atkType==='special'||this.p2.atkType==='ultimate'));bloom.strength=big?0.95:slowMo>0?0.75:0.5;comp.render()},
-  _endR(){this.running=false;this.koTime=1;const w=this.p1.hp>this.p2.hp?1:2;if(w===1)this.p1w++;else this.p2w++;updateWD();SFX.ko();SFX.call('K.O.!');camSh=0.65;document.getElementById('koO').classList.add('on');document.getElementById('hF').style.background='rgba(255,255,255,0.8)';document.getElementById('hF').classList.add('on');setTimeout(()=>document.getElementById('hF').classList.remove('on'),80);updateCam(this.p1,this.p2,0.016);comp.render();const winner=w===1?this.p1:this.p2;if(winner.perfectRound){showGrade('S+');log('★ PERFECT ROUND ★')}
+  _endR(){this.running=false;this.koTime=1;const w=this.p1.hp>this.p2.hp?1:2;if(w===1)this.p1w++;else this.p2w++;updateWD();SFX.ko();SFX.call('K.O.!');camSh=0.65;document.getElementById('koO').classList.add('on');document.getElementById('hF').style.background=color===0xffffff?'#fff':'rgba(255,255,255,0.8)';document.getElementById('hF').classList.add('on');setTimeout(()=>document.getElementById('hF').classList.remove('on'),80);updateCam(this.p1,this.p2,0.016);comp.render();const winner=w===1?this.p1:this.p2;if(winner.perfectRound){showGrade('S+');log('★ PERFECT ROUND ★')}
     // Track stats
     this.stats.totalRounds++;try{localStorage.setItem('amf_stats',JSON.stringify(this.stats))}catch{};
     this.stats.totalDamage[w===1?0:1]+=MHP-winner.hp;
@@ -1326,36 +1386,33 @@ addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProje
 /* ═══════ WEBCAM BODY TRACKING ═══════ */
 const Webcam={
   active:false,pose:null,camera:null,landmarks:null,
-  sens:0.12,
-  cd:{punch:0,kick:0,special:0,grab:0,counter:0,block:0},
-  cdMax:{punch:0.35,kick:0.4,special:0.8,grab:0.5,counter:0.5,block:0.1},
+  sens:0.15, // motion sensitivity threshold
   prevNose:null,prevLWrist:null,prevRWrist:null,prevLAnkle:null,prevRAnkle:null,
-  smoothedBodyX:0.5,
 
   async toggle(){
     if(this.active){this.stop();return}
     try{
-      log('f4f7 Initializing webcam...');
       const stream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480,facingMode:'user'}});
       const video=document.getElementById('wcV');
       video.srcObject=stream;await video.play();
+
+      // Init MediaPipe Pose
       this.pose=new Pose({locateFile:(file)=>`https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5/${file}`});
-      this.pose.setOptions({modelComplexity:1,smoothLandmarks:true,minDetectionConfidence:0.5,minTrackingConfidence:0.5});
+      this.pose.setOptions({modelComplexity:1,smoothLandmarks:true,minDetectionConfidence:0.6,minTrackingConfidence:0.5});
       this.pose.onResults(r=>this.onResults(r));
+
       this.camera=new Camera(video,{onFrame:async()=>{await this.pose.send({image:video})},width:640,height:480});
       this.camera.start();
+
       this.active=true;
-      this.smoothedBodyX=0.5;
-      for(const k in this.cd)this.cd[k]=0;
       document.getElementById('wcPiP').style.display='block';
-      document.getElementById('wcStatus').textContent='INITIALIZING...';
-      document.getElementById('wcStatus').style.color='#fbbf24';
-      log('f4f7 Webcam tracking active! Lean to move, punch/kick to attack!');
-      showSt('WEBCAM ON - MOVE YOUR BODY');
+      document.getElementById('wcStatus').textContent='TRACKING';
+      document.getElementById('wcStatus').style.color='#34d399';
+      log('📷 Webcam tracking active!');
+      showSt('WEBCAM ON');
     }catch(e){
       console.error('Webcam error:',e);
-      log('f4f7 Webcam error: '+e.message);
-      showSt('WEBCAM FAILED');
+      log('📷 Webcam error: '+e.message);
     }
   },
 
@@ -1365,10 +1422,7 @@ const Webcam={
     const video=document.getElementById('wcV');
     if(video.srcObject){video.srcObject.getTracks().forEach(t=>t.stop());video.srcObject=null}
     document.getElementById('wcPiP').style.display='none';
-    this.landmarks=null;
-    this.prevNose=null;this.prevLWrist=null;this.prevRWrist=null;
-    this.prevLAnkle=null;this.prevRAnkle=null;
-    log('f4f7 Webcam tracking stopped');
+    log('📷 Webcam tracking stopped');
   },
 
   onResults(results){
@@ -1378,32 +1432,30 @@ const Webcam={
     ctx.save();
     ctx.clearRect(0,0,canvas.width,canvas.height);
     ctx.drawImage(results.image,0,0,canvas.width,canvas.height);
+
     if(results.poseLandmarks){
       this.landmarks=results.poseLandmarks;
+      // Draw skeleton
       drawConnectors(ctx,this.landmarks,POSE_CONNECTIONS,{color:'#38bdf8',lineWidth:2});
       drawLandmarks(ctx,this.landmarks,{color:'#fb7185',lineWidth:1,radius:3});
-      const lm=this.landmarks;
-      const w=canvas.width,h=canvas.height;
-      [lm[15],lm[16]].forEach(pt=>{ctx.beginPath();ctx.arc(pt.x*w,pt.y*h,8,0,Math.PI*2);ctx.strokeStyle='rgba(251,191,36,0.7)';ctx.lineWidth=2;ctx.stroke()});
-      [lm[27],lm[28]].forEach(pt=>{ctx.beginPath();ctx.arc(pt.x*w,pt.y*h,6,0,Math.PI*2);ctx.strokeStyle='rgba(52,211,153,0.7)';ctx.lineWidth=2;ctx.stroke()});
+
+      // Update status
       const st=document.getElementById('wcStatus');
-      st.textContent='TRACKING';st.style.color='#34d399';
-    }else{
-      const st=document.getElementById('wcStatus');
-      st.textContent='NO POSE';st.style.color='#fb7185';
+      st.textContent='TRACKING ✓';st.style.color='#34d399';
     }
     ctx.restore();
   },
 
-  updateCD(dt){for(const k in this.cd){if(this.cd[k]>0)this.cd[k]=Math.max(0,this.cd[k]-dt)}},
-
-  getInput(dt){
-    if(dt)this.updateCD(dt);
+  // Convert pose landmarks to game input
+  getInput(){
     const inp={left:false,right:false,up:false,down:false,punch:false,kick:false,block:false,special:false,dash:false,grab:false,counter:false,
       spell0:false,spell1:false,spell2:false,spell3:false,spell4:false,spell5:false,spell6:false,spell7:false};
     if(!this.landmarks||this.landmarks.length<33)return inp;
+
     const lm=this.landmarks;
-    const s=this.sens;
+    const s=this.sens; // sensitivity threshold
+
+    // Key landmarks
     const nose=lm[0];
     const lShoulder=lm[11],rShoulder=lm[12];
     const lElbow=lm[13],rElbow=lm[14];
@@ -1411,99 +1463,70 @@ const Webcam={
     const lHip=lm[23],rHip=lm[24];
     const lKnee=lm[25],rKnee=lm[26];
     const lAnkle=lm[27],rAnkle=lm[28];
-    // Movement: Lean body left/right (smoothed)
+
+    // ── MOVEMENT: Lean body left/right ──
     const shoulderMidX=(lShoulder.x+rShoulder.x)/2;
     const hipMidX=(lHip.x+rHip.x)/2;
     const bodyMidX=(shoulderMidX+hipMidX)/2;
-    this.smoothedBodyX+=(bodyMidX-this.smoothedBodyX)*0.3;
-    const bx=this.smoothedBodyX;
-    if(bx<0.5-s)inp.right=true;
-    if(bx>0.5+s)inp.left=true;
-    // Jump: Raise both wrists well above shoulders
+    // Mirror: moving right in camera = move right in game
+    if(bodyMidX<0.5-s)inp.right=true;
+    if(bodyMidX>0.5+s)inp.left=true;
+
+    // ── JUMP: Raise both wrists above shoulders ──
     const shoulderY=(lShoulder.y+rShoulder.y)/2;
-    const wristAboveL=lShoulder.y-lWrist.y;
-    const wristAboveR=rShoulder.y-rWrist.y;
-    if(wristAboveL>0.1&&wristAboveR>0.1)inp.up=true;
-    // Crouch: Hips drop low
+    if(lWrist.y<shoulderY-0.15&&rWrist.y<shoulderY-0.15)inp.up=true;
+
+    // ── CROUCH: Lower hips significantly ──
     const hipY=(lHip.y+rHip.y)/2;
-    if(hipY>0.72)inp.down=true;
-    // Punch: Either arm extends rapidly forward with velocity
-    if(this.cd.punch<=0){
-      const rExtH=Math.abs(rWrist.x-rShoulder.x);
-      const rExtV=rWrist.y-rElbow.y;
-      const rExtZ=rShoulder.z-rWrist.z;
-      const rPunch=(rExtH>0.18&&rExtZ>0.02)||(rExtH>0.15&&rExtV>0.05);
-      const lExtH=Math.abs(lWrist.x-lShoulder.x);
-      const lExtV=lWrist.y-lElbow.y;
-      const lExtZ=lShoulder.z-lWrist.z;
-      const lPunch=(lExtH>0.18&&lExtZ>0.02)||(lExtH>0.15&&lExtV>0.05);
-      let thrustDetected=false;
-      if(this.prevRWrist){const rdx=Math.abs(rWrist.y-this.prevRWrist.y);const rdy=Math.abs(rWrist.z-this.prevRWrist.z);if(rdx>0.03||rdy>0.02)thrustDetected=true}
-      if(this.prevLWrist){const ldx=Math.abs(lWrist.y-this.prevLWrist.y);const ldy=Math.abs(lWrist.z-this.prevLWrist.z);if(ldx>0.03||ldy>0.02)thrustDetected=true}
-      if((rPunch||lPunch)&&thrustDetected){inp.punch=true;this.cd.punch=this.cdMax.punch}
+    const ankleY=(lAnkle.y+rAnkle.y)/2;
+    if(hipY>0.75)inp.down=true;
+
+    // ── PUNCH: Right arm extends forward (wrist moves away from body) ──
+    if(this.prevRWrist){
+      const dx=rWrist.x-this.prevRWrist.x;
+      const speed=Math.abs(dx);
+      // Extend: wrist moves toward camera center (away from body)
+      const extend=Math.abs(rWrist.x-rShoulder.x);
+      if(extend>0.15&&rWrist.z<rShoulder.z-0.05)inp.punch=true;
     }
-    // Kick: Either leg extends with velocity
-    if(this.cd.kick<=0){
-      const lLegExt=Math.abs(lAnkle.x-lHip.x);
-      const rLegExt=Math.abs(rAnkle.x-rHip.x);
-      const lKicking=lLegExt>0.14&&lAnkle.y<lKnee.y-0.02;
-      const rKicking=rLegExt>0.14&&rAnkle.y<rKnee.y-0.02;
-      let kickThrust=false;
-      if(this.prevLAnkle){const lvx=Math.abs(lAnkle.x-this.prevLAnkle.x);const lvy=Math.abs(lAnkle.y-this.prevLAnkle.y);if(lvx>0.02||lvy>0.02)kickThrust=true}
-      if(this.prevRAnkle){const rvx=Math.abs(rAnkle.x-this.prevRAnkle.x);const rvy=Math.abs(rAnkle.y-this.prevRAnkle.y);if(rvx>0.02||rvy>0.02)kickThrust=true}
-      if((lKicking||rKicking)&&kickThrust){inp.kick=true;this.cd.kick=this.cdMax.kick}
+
+    // ── KICK: Left leg extends (ankle moves forward) ──
+    if(this.prevLAnkle){
+      const extend=Math.abs(lAnkle.x-lHip.x);
+      if(extend>0.15&&lAnkle.y<lKnee.y)inp.kick=true;
     }
-    // Block: Both hands near face or chest
+
+    // ── BLOCK: Both hands in front of face ──
     const faceY=nose.y;
-    const chestY=(lShoulder.y+rShoulder.y)/2;
     const lDistFace=Math.sqrt((lWrist.x-nose.x)**2+(lWrist.y-faceY)**2);
     const rDistFace=Math.sqrt((rWrist.x-nose.x)**2+(rWrist.y-faceY)**2);
-    const lNearChest=lWrist.y<chestY+0.08&&Math.abs(lWrist.x-lShoulder.x)<0.12;
-    const rNearChest=rWrist.y<chestY+0.08&&Math.abs(rWrist.x-rShoulder.x)<0.12;
-    if((lDistFace<0.14&&rDistFace<0.14)||(lNearChest&&rNearChest))inp.block=true;
-    // Special: Both arms up + forward or wide apart + up
-    if(this.cd.special<=0){
-      const lUp=lShoulder.y-lWrist.y>0.12;
-      const rUp=rShoulder.y-rWrist.y>0.12;
-      const lFwd=lShoulder.z-lWrist.z>0.04;
-      const rFwd=rShoulder.z-rWrist.z>0.04;
-      const armsWide=Math.abs(lWrist.x-rWrist.x)>0.35;
-      if((lUp&&rUp&&(lFwd||rFwd))||(armsWide&&lUp&&rUp)){inp.special=true;this.cd.special=this.cdMax.special}
-    }
-    // Dash: Fast lateral lean with arm back
-    if(this.cd.punch<=0){
-      const leanAmt=Math.abs(bodyMidX-0.5);
-      if(leanAmt>s*2.5){
-        const armBack=(lElbow.y>lShoulder.y+0.05)||(rElbow.y>rShoulder.y+0.05);
-        if(armBack){inp.dash=true;this.cd.punch=0.3}
-      }
-    }
-    // Grab: Both arms extend forward and low
-    if(this.cd.grab<=0){
-      const lFwd=lShoulder.z-lWrist.z>0.04;
-      const rFwd=rShoulder.z-rWrist.z>0.04;
-      const lDown=lWrist.y>chestY;
-      const rDown=rWrist.y>chestY;
-      const closeHands=Math.abs(lWrist.x-rWrist.x)<0.2;
-      if(lFwd&&rFwd&&(lDown||rDown)&&closeHands){inp.grab=true;this.cd.grab=this.cdMax.grab}
-    }
-    // Counter: One arm crosses body
-    if(this.cd.counter<=0){
-      const lCross=Math.abs(lWrist.x-rShoulder.x)<0.1&&lWrist.y>chestY-0.1;
-      const rCross=Math.abs(rWrist.x-lShoulder.x)<0.1&&rWrist.y>chestY-0.1;
-      if(lCross||rCross){inp.counter=true;this.cd.counter=this.cdMax.counter}
-    }
+    if(lDistFace<0.12&&rDistFace<0.12)inp.block=true;
+
+    // ── SPECIAL: Both arms thrust forward together ──
+    const lExtend=Math.abs(lWrist.z-lShoulder.z);
+    const rExtend=Math.abs(rWrist.z-rShoulder.z);
+    if(lExtend>0.08&&rExtend>0.08&&lWrist.y<shoulderY&&rWrist.y<shoulderY)inp.special=true;
+
+    // ── COUNTER: Cross arms in front of chest ──
+    const crossDist=Math.abs(lWrist.x-rWrist.x);
+    if(crossDist<0.08&&lWrist.y>shoulderY-0.05&&rWrist.y>shoulderY-0.05)inp.counter=true;
+
     // Store prev for velocity detection
     this.prevNose={x:nose.x,y:nose.y,z:nose.z};
     this.prevLWrist={x:lWrist.x,y:lWrist.y,z:lWrist.z};
     this.prevRWrist={x:rWrist.x,y:rWrist.y,z:rWrist.z};
     this.prevLAnkle={x:lAnkle.x,y:lAnkle.y,z:lAnkle.z};
     this.prevRAnkle={x:rAnkle.x,y:rAnkle.y,z:rAnkle.z};
+
     return inp;
   }
 };
 
-// Webcam input is wired directly into p1I() via getInput()
+// Wire webcam input into p1I
+const _origP1I=p1I;
+window._webcamActive=false;
+// Override p1I to include webcam
+const _p1IRef=p1I;
 
 window.addEventListener('keydown',e=>{if(e.code==='KeyC'&&!e.repeat)Webcam.toggle()});
 
@@ -1709,7 +1732,8 @@ const Touch={
 };
 Touch.init();
 
-// Touch input is wired directly into p1I() via getInput()
+// Wire touch into p1I
+const _origP1I=p1I;
 
 window.Touch=Touch;
 
