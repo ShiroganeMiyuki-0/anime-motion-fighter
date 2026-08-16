@@ -180,7 +180,7 @@ ANIME MOTION <span class="text-[10px] text-amber-400 border border-amber-500/40 
 <h3 class="font-orbitron text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-amber-300 uppercase">SELECT BATTLE MODE</h3>
 <p class="text-xs text-slate-400">Play Solo vs AI or 2-Player Local Battle</p>
 </div>
-<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
 <button id="modeBtn1P" onclick="setGameMode('1P')" class="p-4 rounded-xl border-2 border-cyan-500 bg-cyan-500/10 hover:bg-cyan-500/20 text-left transition relative">
 <div class="flex items-center space-x-3 mb-2"><i class="fa-solid fa-robot text-2xl text-cyan-400"></i><span class="font-orbitron font-bold text-lg text-cyan-300">1P VS ADAPTIVE AI</span></div>
 <p class="text-xs text-slate-300">Physical motion tracking vs an AI bot that reads your habits and counters your most-used move.</p>
@@ -188,6 +188,10 @@ ANIME MOTION <span class="text-[10px] text-amber-400 border border-amber-500/40 
 <button id="modeBtn2P" onclick="setGameMode('2P')" class="p-4 rounded-xl border-2 border-slate-700 bg-slate-800/40 hover:bg-slate-800 text-left transition relative">
 <div class="flex items-center space-x-3 mb-2"><i class="fa-solid fa-user-ninja text-2xl text-rose-400"></i><span class="font-orbitron font-bold text-lg text-rose-300">2-PLAYER LOCAL VS</span></div>
 <p class="text-xs text-slate-300">Player 1 uses Webcam Pose Tracking. Player 2 uses Keyboard / Gamepad Controls.</p>
+</button>
+<button id="modeBtnCAM2P" onclick="setGameMode('CAM2P')" class="p-4 rounded-xl border-2 border-slate-700 bg-slate-800/40 hover:bg-slate-800 text-left transition relative">
+<div class="flex items-center space-x-3 mb-2"><i class="fa-solid fa-people-arrows text-2xl text-emerald-400"></i><span class="font-orbitron font-bold text-lg text-emerald-300">2P SAME CAMERA</span></div>
+<p class="text-xs text-slate-300">Both players stand side-by-side in one webcam. Hands/feet touching the opponent's body = a hit. Limb-to-limb contact = a block.</p>
 </button>
 </div>
 <div class="border-t border-slate-800 pt-5">
@@ -303,6 +307,9 @@ function tierName(lvl){return THREAT_TIERS[Math.min(lvl-1,THREAT_TIERS.length-1)
 let cameraShake=0,hitStopFrames=0;
 let lastTime=performance.now();
 let livePoseLandmarks=null,liveVisible=false;
+let dualCamMode=false,p2LiveLandmarks=null,dualCamRunning=false;
+let p1LimbCooldown={LW:0,RW:0,LA:0,RA:0},p2LimbCooldown={LW:0,RW:0,LA:0,RA:0};
+const p2Smoother=new LandmarkSmoother(0.55);
 let p1PhysicalHitCooldown=0;
 let prevWristL=null,prevWristR=null,prevAnkleL=null,prevAnkleR=null;
 
@@ -662,6 +669,83 @@ function processPose(landmarks){
   }else p1PhysicalHitCooldown--;
 }
 
+/* ---- Simple contact-based scoring for same-camera 2P mode ----
+   Hands/feet are the only "weapons"; torso (shoulders-to-hips box) is the
+   only target. A limb landing inside the opponent's torso box = a hit.
+   Two limbs meeting each other = a block. Nothing fancier than that. */
+function torsoBox(lm){
+  const shL=lm[11],shR=lm[12],hipL=lm[23],hipR=lm[24];
+  const xs=[shL.x,shR.x,hipL.x,hipR.x],ys=[shL.y,shR.y,hipL.y,hipR.y];
+  const pad=0.05;
+  return{minX:Math.min(...xs)-pad,maxX:Math.max(...xs)+pad,minY:Math.min(...ys)-pad*0.6,maxY:Math.max(...ys)+pad};
+}
+function inBox(pt,box){return pt.x>=box.minX&&pt.x<=box.maxX&&pt.y>=box.minY&&pt.y<=box.maxY;}
+function ptDist(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
+const LIMB_POINTS={LW:15,RW:16,LA:27,RA:28};
+const BLOCK_RADIUS=0.075;
+function checkDualCamCollisions(dt){
+  if(!p1LiveLandmarksSafe()||!p2LiveLandmarksSafe())return;
+  const lmA=livePoseLandmarks,lmB=p2LiveLandmarks;
+  const boxA=torsoBox(lmA),boxB=torsoBox(lmB);
+  for(const k in p1LimbCooldown)if(p1LimbCooldown[k]>0)p1LimbCooldown[k]-=dt;
+  for(const k in p2LimbCooldown)if(p2LimbCooldown[k]>0)p2LimbCooldown[k]-=dt;
+
+  // 1) blocks: any of A's limbs meeting any of B's limbs cancels a hit for that pair
+  const blockedA={},blockedB={};
+  for(const ka in LIMB_POINTS){
+    const ptA=lmA[LIMB_POINTS[ka]];
+    for(const kb in LIMB_POINTS){
+      const ptB=lmB[LIMB_POINTS[kb]];
+      if(ptDist(ptA,ptB)<BLOCK_RADIUS){
+        blockedA[ka]=true;blockedB[kb]=true;
+        if(p1LimbCooldown[ka]<=0&&p2LimbCooldown[kb]<=0){
+          p1LimbCooldown[ka]=0.4;p2LimbCooldown[kb]=0.4;
+          const midX=(player.x+ai.x)/2;
+          sound.playBlock();create3DHitSparks(midX,1.5,0,0x93c5fd,10);
+          addFloatingText('CLASH!',window.innerWidth*0.5,window.innerHeight*0.4,'#38bdf8');
+          triggerHitStop(2);
+        }
+      }
+    }
+  }
+  // 2) hits: A's limb inside B's torso box (and not blocked / on cooldown)
+  for(const ka in LIMB_POINTS){
+    if(blockedA[ka])continue;
+    if(p1LimbCooldown[ka]>0)continue;
+    const ptA=lmA[LIMB_POINTS[ka]];
+    if(inBox(ptA,boxB)){
+      p1LimbCooldown[ka]=0.5;
+      landDualCamHit(true,ka.startsWith('L')||ka.startsWith('R')?ka[1]==='W'?'HAND':'FOOT':'HAND');
+    }
+  }
+  for(const kb in LIMB_POINTS){
+    if(blockedB[kb])continue;
+    if(p2LimbCooldown[kb]>0)continue;
+    const ptB=lmB[LIMB_POINTS[kb]];
+    if(inBox(ptB,boxA)){
+      p2LimbCooldown[kb]=0.5;
+      landDualCamHit(false,kb.startsWith('L')||kb.startsWith('R')?kb[1]==='W'?'HAND':'FOOT':'HAND');
+    }
+  }
+}
+function p1LiveLandmarksSafe(){return livePoseLandmarks&&livePoseLandmarks.length>=29;}
+function p2LiveLandmarksSafe(){return p2LiveLandmarks&&p2LiveLandmarks.length>=29;}
+function landDualCamHit(fromP1,weapon){
+  if(roundLocked)return;
+  const attackerIsP1=fromP1;
+  const target=attackerIsP1?ai:player;
+  const attackerChar=attackerIsP1?selectedP1Char:selectedP2Char;
+  const damage=weapon==='FOOT'?16:10;
+  sound.playHit();
+  target.hp=Math.max(0,target.hp-damage);
+  target.hitFlash=1;applyKnockback(target,attackerIsP1,weapon==='FOOT'?0.24:0.14);
+  create3DHitSparks(target.x,1.6,0,attackerChar.colorHex,weapon==='FOOT'?16:10);
+  addFloatingText(`-${damage} ${weapon}`,window.innerWidth*(attackerIsP1?0.7:0.3),window.innerHeight*0.4,'#f43f5e');
+  if(attackerIsP1)incrementCombo();
+  triggerHitStop(weapon==='FOOT'?4:3);flashScreen(0.1);
+  updateHud();checkWinLoss();
+}
+
 function check3DSpatialCollision(type,velocity){
   if(!playerFighter3D||!aiFighter3D)return;
   const p1Hand=new THREE.Vector3();playerFighter3D.armR.hand.getWorldPosition(p1Hand);
@@ -758,7 +842,7 @@ function executePlayerSuper(attackerNum){
 
 /* ---- Adaptive AI: reads the player's move histogram and counters it ---- */
 function updateAdaptiveAI(delta){
-  if(selectedGameMode!=='1P'||gameState!=='PLAYING'||roundLocked)return;
+  if(selectedGameMode!=='1P'||dualCamMode||gameState!=='PLAYING'||roundLocked)return;
   ai.actionTimer+=delta;
   if(ai.actionTimer<ai.reactionDelay)return;
   ai.actionTimer=0;
@@ -839,32 +923,36 @@ function flashScreen(intensity){
 function addFloatingText(text,x,y,color){floatingTexts.push({text,x,y,vy:-1.1,life:1.0,color});}
 
 /* ============================= FIGHTER ANIMATION ============================= */
+function landmarksToBoneTargets(lm){
+  const nose=lm[0],shL=lm[11],shR=lm[12],elL=lm[13],elR=lm[14],wrL=lm[15],wrR=lm[16];
+  const hipL=lm[23],hipR=lm[24],knL=lm[25],knR=lm[26],anL=lm[27],anR=lm[28];
+  const t={};
+  t.shoulderR=Math.atan2(elR.y-shR.y,elR.x-shR.x)+Math.PI/2;
+  t.elbowR=Math.atan2(wrR.y-elR.y,wrR.x-elR.x)-t.shoulderR+Math.PI/2;
+  t.shoulderL=Math.atan2(elL.y-shL.y,elL.x-shL.x)+Math.PI/2;
+  t.elbowL=Math.atan2(wrL.y-elL.y,wrL.x-elL.x)-t.shoulderL+Math.PI/2;
+  t.hipR=Math.atan2(knR.y-hipR.y,knR.x-hipR.x)+Math.PI/2;
+  t.kneeR=Math.atan2(anR.y-knR.y,anR.x-knR.x)-t.hipR+Math.PI/2;
+  t.hipL=Math.atan2(knL.y-hipL.y,knL.x-hipL.x)+Math.PI/2;
+  t.kneeL=Math.atan2(anL.y-knL.y,anL.x-knL.x)-t.hipL+Math.PI/2;
+  const hipAvgY=(hipL.y+hipR.y)/2;
+  t.hipsY=THREE.MathUtils.clamp((0.55-hipAvgY)*3.0,-0.55,0.4);
+  t.turn=THREE.MathUtils.clamp((nose.x-(shL.x+shR.x)/2)*2.2,-0.6,0.6);
+  t.bend=0;
+  return t;
+}
 function updateFighterRig(rig,entity,stance,isEnemy,dt){
   const c=rig.cur;
   const mirror=isEnemy?-1:1; // flip left/right feel is handled by group rotation already
 
   let tShoulderL=0,tElbowL=0,tShoulderR=0,tElbowR=0,tHipL=0,tKneeL=0,tHipR=0,tKneeR=0,tBend=0,tTurn=0,tHipsY=0;
 
-  if(!isEnemy&&livePoseLandmarks){
-    const lm=livePoseLandmarks;
-    const nose=lm[0],shL=lm[11],shR=lm[12],elL=lm[13],elR=lm[14],wrL=lm[15],wrR=lm[16];
-    const hipL=lm[23],hipR=lm[24],knL=lm[25],knR=lm[26],anL=lm[27],anR=lm[28];
-
-    tShoulderR=-Math.atan2(elR.y-shR.y,elR.x-shR.x)-Math.PI/2*mirror*0;
-    tShoulderR=Math.atan2(elR.y-shR.y,elR.x-shR.x)+Math.PI/2;
-    tElbowR=Math.atan2(wrR.y-elR.y,wrR.x-elR.x)-tShoulderR+Math.PI/2;
-    tShoulderL=Math.atan2(elL.y-shL.y,elL.x-shL.x)+Math.PI/2;
-    tElbowL=Math.atan2(wrL.y-elL.y,wrL.x-elL.x)-tShoulderL+Math.PI/2;
-
-    tHipR=Math.atan2(knR.y-hipR.y,knR.x-hipR.x)+Math.PI/2;
-    tKneeR=Math.atan2(anR.y-knR.y,anR.x-knR.x)-tHipR+Math.PI/2;
-    tHipL=Math.atan2(knL.y-hipL.y,knL.x-hipL.x)+Math.PI/2;
-    tKneeL=Math.atan2(anL.y-knL.y,anL.x-knL.x)-tHipL+Math.PI/2;
-
-    const hipAvgY=(hipL.y+hipR.y)/2;
-    tHipsY=THREE.MathUtils.clamp((0.55-hipAvgY)*3.0,-0.55,0.4);
-    tTurn=THREE.MathUtils.clamp((nose.x-(shL.x+shR.x)/2)*2.2,-0.6,0.6);
-    tBend=0;
+  const liveLm=isEnemy?(dualCamMode?p2LiveLandmarks:null):livePoseLandmarks;
+  if(liveLm){
+    const t=landmarksToBoneTargets(liveLm);
+    tShoulderL=t.shoulderL;tElbowL=t.elbowL;tShoulderR=t.shoulderR;tElbowR=t.elbowR;
+    tHipL=t.hipL;tKneeL=t.kneeL;tHipR=t.hipR;tKneeR=t.kneeR;
+    tHipsY=t.hipsY;tTurn=t.turn;tBend=t.bend;
   }else{
     // stance-driven procedural pose for AI / manual / idle
     const t=performance.now()*0.004;
@@ -991,6 +1079,7 @@ function animate3D(now){
   if(playerFighter3D)updateFighterRig(playerFighter3D,player,player.stance,false,dt);
   if(aiFighter3D)updateFighterRig(aiFighter3D,ai,ai.stance,true,dt);
   if(playerFighter3D&&aiFighter3D)updateSplitCameras();
+  if(dualCamMode&&gameState==='PLAYING')checkDualCamCollisions(dt);
 
   for(let i=particles3D.length-1;i>=0;i--){
     const p=particles3D[i];
@@ -1028,6 +1117,8 @@ function toggleSplitScreen(){
 /* ============================= CAMERA / MEDIAPIPE ============================= */
 let cameraInstance=null,poseInstance=null;
 function initCamera(){
+  if(selectedGameMode==='CAM2P'){initDualCamera();return;}
+  dualCamMode=false;
   sound.init();
   if(gameState==='START'||gameState==='OVER')startMatch();
   const videoElement=document.getElementById('webcamInput');
@@ -1045,6 +1136,75 @@ function initCamera(){
   });
   cameraInstance=new Camera(videoElement,{onFrame:async()=>{await poseInstance.send({image:videoElement});},width:640,height:480});
   cameraInstance.start();
+}
+
+/* ============================= DUAL-PERSON SAME-CAMERA TRACKING =============================
+   Simple by design: track only wrists + ankles as "weapons" and the torso box as
+   the only target. Uses MediaPipe's newer multi-pose Tasks Vision model (the classic
+   @mediapipe/pose package only ever tracks one person). Loaded via dynamic import so a
+   failure here can never take down the rest of the page (learned that lesson already). */
+let dualCamLandmarker=null;
+async function initDualCamera(){
+  dualCamMode=true;dualCamRunning=false;
+  sound.init();
+  if(gameState==='START'||gameState==='OVER')startMatch();
+  updateGestureStatus('LOADING DUAL TRACKER...','text-amber-400');
+  const videoElement=document.getElementById('webcamInput');
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480,facingMode:'user'},audio:false});
+    videoElement.srcObject=stream;
+    await videoElement.play();
+    const vision=await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs');
+    const{PoseLandmarker,FilesetResolver}=vision;
+    const filesetResolver=await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
+    dualCamLandmarker=await PoseLandmarker.createFromOptions(filesetResolver,{
+      baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task',delegate:'GPU'},
+      runningMode:'VIDEO',numPoses:2
+    });
+    dualCamRunning=true;
+    updateGestureStatus('STAND SIDE BY SIDE IN FRAME','text-emerald-400');
+    dualCamLoop(videoElement);
+  }catch(err){
+    console.error('Dual-camera tracking failed to start',err);
+    updateGestureStatus('CAM TRACKER FAILED - CHECK PERMISSIONS','text-rose-400');
+    dualCamMode=false;
+  }
+}
+function dualCamLoop(videoElement){
+  if(!dualCamRunning)return;
+  if(videoElement.readyState>=2&&dualCamLandmarker){
+    const result=dualCamLandmarker.detectForVideo(videoElement,performance.now());
+    pipCtx.save();pipCtx.clearRect(0,0,pipCanvas.width,pipCanvas.height);
+    pipCtx.drawImage(videoElement,0,0,pipCanvas.width,pipCanvas.height);
+    const poses=result.landmarks||[];
+    if(poses.length>=1){
+      const withCenter=poses.map(lm=>({lm,cx:(lm[23].x+lm[24].x)/2})).sort((a,b)=>a.cx-b.cx);
+      const rawP1=withCenter[0]?withCenter[0].lm:null;
+      const rawP2=withCenter[1]?withCenter[1].lm:null;
+      livePoseLandmarks=rawP1?smoother.filter(rawP1):null;
+      p2LiveLandmarks=rawP2?p2Smoother.filter(rawP2):null;
+      liveVisible=!!livePoseLandmarks;
+      if(rawP1)drawSkeleton(rawP1,'#38bdf8');
+      if(rawP2)drawSkeleton(rawP2,'#f43f5e');
+      updateGestureStatus((livePoseLandmarks&&p2LiveLandmarks)?'BOTH FIGHTERS TRACKED':'WAITING FOR BOTH PLAYERS...',(livePoseLandmarks&&p2LiveLandmarks)?'text-emerald-400':'text-amber-400');
+    }else{
+      livePoseLandmarks=null;p2LiveLandmarks=null;
+      updateGestureStatus('STAND SIDE BY SIDE IN FRAME','text-amber-400');
+    }
+    pipCtx.restore();
+  }
+  requestAnimationFrame(()=>dualCamLoop(videoElement));
+}
+function drawSkeleton(lm,color){
+  const w=pipCanvas.width,h=pipCanvas.height;
+  const pairs=[[11,12],[11,13],[13,15],[12,14],[14,16],[11,23],[12,24],[23,24],[23,25],[25,27],[24,26],[26,28]];
+  pipCtx.strokeStyle=color;pipCtx.lineWidth=2;
+  pairs.forEach(([a,b])=>{pipCtx.beginPath();pipCtx.moveTo(lm[a].x*w,lm[a].y*h);pipCtx.lineTo(lm[b].x*w,lm[b].y*h);pipCtx.stroke();});
+}
+function stopDualCamera(){
+  dualCamRunning=false;dualCamMode=false;
+  const videoElement=document.getElementById('webcamInput');
+  if(videoElement.srcObject){videoElement.srcObject.getTracks().forEach(t=>t.stop());videoElement.srcObject=null;}
 }
 
 /* ============================= MANUAL CONTROLS ============================= */
@@ -1172,10 +1332,11 @@ async function startNextRound(){
 }
 function startMatch(){
   currentRound=1;p1RoundWins=0;p2RoundWins=0;roundLocked=true;
+  const p2Suffix=selectedGameMode==='1P'?' (AI)':selectedGameMode==='CAM2P'?' (P2 - CAM)':' (P2)';
   document.getElementById('p1NameText').innerHTML=`<i class="fa-solid fa-user text-cyan-300"></i> P1: ${selectedP1Char.name}`;
-  document.getElementById('p2NameText').innerHTML=`<i class="fa-solid fa-skull text-rose-500"></i> ${selectedP2Char.name}${selectedGameMode==='1P'?' (AI)':' (P2)'}`;
+  document.getElementById('p2NameText').innerHTML=`<i class="fa-solid fa-skull text-rose-500"></i> ${selectedP2Char.name}${p2Suffix}`;
   document.getElementById('p2CharLabel').innerText=selectedGameMode==='1P'?'ENEMY AI FIGHTER':'PLAYER 2 FIGHTER';
-  document.getElementById('gameModeDisplay').innerText=selectedGameMode==='1P'?'1P VS ADAPTIVE AI':'2-PLAYER LOCAL VS';
+  document.getElementById('gameModeDisplay').innerText=selectedGameMode==='1P'?'1P VS ADAPTIVE AI':selectedGameMode==='CAM2P'?'2P SAME CAMERA':'2-PLAYER LOCAL VS';
   document.getElementById('levelDisplay').innerText=`LVL ${gameLevel}: ${tierName(gameLevel)}`;
   renderRoundPips();
   closeOverlay();
@@ -1192,12 +1353,16 @@ function toggleMute(){
 function openModeSelectModal(){document.getElementById('modeSelectModal').classList.remove('hidden');}
 function closeModeSelectModal(){document.getElementById('modeSelectModal').classList.add('hidden');}
 function setGameMode(mode){
+  if(dualCamRunning&&mode!=='CAM2P')stopDualCamera();
   selectedGameMode=mode;
   document.getElementById('modeBtn1P').className=mode==='1P'
     ?'p-4 rounded-xl border-2 border-cyan-500 bg-cyan-500/10 hover:bg-cyan-500/20 text-left transition relative'
     :'p-4 rounded-xl border-2 border-slate-700 bg-slate-800/40 hover:bg-slate-800 text-left transition relative';
   document.getElementById('modeBtn2P').className=mode==='2P'
     ?'p-4 rounded-xl border-2 border-rose-500 bg-rose-500/10 hover:bg-rose-500/20 text-left transition relative'
+    :'p-4 rounded-xl border-2 border-slate-700 bg-slate-800/40 hover:bg-slate-800 text-left transition relative';
+  document.getElementById('modeBtnCAM2P').className=mode==='CAM2P'
+    ?'p-4 rounded-xl border-2 border-emerald-500 bg-emerald-500/10 hover:bg-emerald-500/20 text-left transition relative'
     :'p-4 rounded-xl border-2 border-slate-700 bg-slate-800/40 hover:bg-slate-800 text-left transition relative';
   document.getElementById('p2CharLabel').innerText=mode==='1P'?'ENEMY AI FIGHTER':'PLAYER 2 FIGHTER';
 }
