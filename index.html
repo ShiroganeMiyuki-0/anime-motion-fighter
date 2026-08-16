@@ -306,6 +306,26 @@ const THREAT_TIERS=['MINION BOT','ELITE GUARD','SHADOW ACE','OVERLORD PRIME','AP
 function tierName(lvl){return THREAT_TIERS[Math.min(lvl-1,THREAT_TIERS.length-1)];}
 let cameraShake=0,hitStopFrames=0;
 let lastTime=performance.now();
+let runtimeBooted=false;
+
+function showRuntimeError(title,message,actionText='USE MANUAL CONTROLS'){
+  const overlay=document.getElementById('gameOverlay');
+  if(!overlay)return;
+  document.getElementById('overlayTitle').innerHTML=`<span class="text-rose-400">${title}</span>`;
+  document.getElementById('overlayDesc').textContent=message;
+  document.getElementById('overlayButtons').innerHTML=`<button onclick="toggleKeyboardFallback();closeOverlay()" class="px-8 py-3 bg-gradient-to-r from-cyan-400 to-blue-600 hover:scale-105 text-slate-950 font-orbitron font-black rounded-xl text-base shadow-xl transition"><i class="fa-solid fa-gamepad mr-2"></i>${actionText}</button>`;
+  overlay.classList.remove('hidden');
+}
+
+window.addEventListener('error',(event)=>console.error('[Anime Motion Fighter] Runtime error:',event.error||event.message));
+window.addEventListener('unhandledrejection',(event)=>console.error('[Anime Motion Fighter] Unhandled promise rejection:',event.reason));
+window.addEventListener('pagehide',()=>{
+  dualCamRunning=false;
+  if(cameraInstance?.stop)cameraInstance.stop();
+  const video=document.getElementById('webcamInput');
+  video?.srcObject?.getTracks?.().forEach(track=>track.stop());
+  renderer?.dispose?.();
+});
 let livePoseLandmarks=null,liveVisible=false;
 let dualCamMode=false,p2LiveLandmarks=null,dualCamRunning=false;
 let p1LimbCooldown={LW:0,RW:0,LA:0,RA:0},p2LimbCooldown={LW:0,RW:0,LA:0,RA:0};
@@ -332,16 +352,23 @@ function makeToonGradient(){
 
 function init3DWorld(){
   const container=document.getElementById('webglContainer');
+  if(!container)throw new Error('The game canvas container is missing.');
+  const width=Math.max(container.clientWidth,320);
+  const height=Math.max(container.clientHeight,240);
   scene=new THREE.Scene();
   scene.fog=new THREE.FogExp2(0x020617,0.035);
-  camera=new THREE.PerspectiveCamera(42,container.clientWidth/container.clientHeight,0.1,100);
+  camera=new THREE.PerspectiveCamera(42,width/height,0.1,100);
   camera.position.set(0,2.6,10);
   camera.lookAt(0,1.25,0);
-  const halfAspect=(container.clientWidth/2)/container.clientHeight;
+  const halfAspect=(width/2)/height;
   cameraP1=new THREE.PerspectiveCamera(58,halfAspect,0.1,100);
   cameraP2=new THREE.PerspectiveCamera(58,halfAspect,0.1,100);
-  renderer=new THREE.WebGLRenderer({antialias:true});
-  renderer.setSize(container.clientWidth,container.clientHeight);
+  try{
+    renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
+  }catch(error){
+    throw new Error('WebGL could not start. Try a modern browser or enable hardware acceleration.');
+  }
+  renderer.setSize(width,height);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
   renderer.shadowMap.enabled=true;
   renderer.shadowMap.type=THREE.PCFSoftShadowMap;
@@ -1118,6 +1145,11 @@ function toggleSplitScreen(){
 let cameraInstance=null,poseInstance=null;
 function initCamera(){
   if(selectedGameMode==='CAM2P'){initDualCamera();return;}
+  if(!navigator.mediaDevices?.getUserMedia){
+    updateGestureStatus('WEBCAM UNAVAILABLE - USE MANUAL CONTROLS','text-rose-400');
+    showRuntimeError('WEBCAM UNAVAILABLE','This browser or connection does not expose camera access. You can still play with keyboard controls.');
+    return;
+  }
   dualCamMode=false;
   sound.init();
   if(gameState==='START'||gameState==='OVER')startMatch();
@@ -1134,8 +1166,15 @@ function initCamera(){
     }else{processPose(null);}
     pipCtx.restore();
   });
-  cameraInstance=new Camera(videoElement,{onFrame:async()=>{await poseInstance.send({image:videoElement});},width:640,height:480});
-  cameraInstance.start();
+  try{
+    cameraInstance=new Camera(videoElement,{onFrame:async()=>{if(poseInstance&&videoElement.readyState>=2)await poseInstance.send({image:videoElement});},width:640,height:480});
+    cameraInstance.start();
+    updateGestureStatus('CAMERA READY - STAND IN VIEW','text-emerald-400');
+  }catch(error){
+    console.error('Camera tracking failed to start',error);
+    updateGestureStatus('CAMERA FAILED - USE MANUAL CONTROLS','text-rose-400');
+    showRuntimeError('CAMERA START FAILED','Camera access was blocked or the tracking model could not load. Keyboard controls remain available.');
+  }
 }
 
 /* ============================= DUAL-PERSON SAME-CAMERA TRACKING =============================
@@ -1151,6 +1190,7 @@ async function initDualCamera(){
   updateGestureStatus('LOADING DUAL TRACKER...','text-amber-400');
   const videoElement=document.getElementById('webcamInput');
   try{
+    if(!navigator.mediaDevices?.getUserMedia)throw new Error('Camera API unavailable');
     const stream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480,facingMode:'user'},audio:false});
     videoElement.srcObject=stream;
     await videoElement.play();
@@ -1166,7 +1206,8 @@ async function initDualCamera(){
     dualCamLoop(videoElement);
   }catch(err){
     console.error('Dual-camera tracking failed to start',err);
-    updateGestureStatus('CAM TRACKER FAILED - CHECK PERMISSIONS','text-rose-400');
+    updateGestureStatus('CAM TRACKER FAILED - USE MANUAL CONTROLS','text-rose-400');
+    showRuntimeError('DUAL TRACKER FAILED','The camera or dual-person tracking model could not start. Check permissions, then use manual controls if needed.');
     dualCamMode=false;
   }
 }
@@ -1390,10 +1431,17 @@ function toggleHelpModal(){document.getElementById('helpModal').classList.toggle
 
 /* ============================= BOOT ============================= */
 window.addEventListener('DOMContentLoaded',()=>{
-  init3DWorld();
-  renderCharGrid('p1CharGrid',selectP1Char,selectedP1Char);
-  renderCharGrid('p2CharGrid',selectP2Char,selectedP2Char);
-  requestAnimationFrame(animate3D);
+  try{
+    init3DWorld();
+    renderCharGrid('p1CharGrid',selectP1Char,selectedP1Char);
+    renderCharGrid('p2CharGrid',selectP2Char,selectedP2Char);
+    runtimeBooted=true;
+    requestAnimationFrame(animate3D);
+  }catch(error){
+    console.error('Game boot failed',error);
+    showRuntimeError('GAME ENGINE FAILED','The 3D engine could not start on this device. Reload the page or try a modern browser with hardware acceleration.','RELOAD GAME');
+    document.querySelector('#overlayButtons button')?.addEventListener('click',()=>window.location.reload());
+  }
 });
 </script>
 </body>
