@@ -45,7 +45,24 @@ ANIME MOTION <span class="text-[10px] text-amber-400 border border-amber-500/40 
 </div>
 </div>
 <div class="hidden lg:flex items-center space-x-6">
-<div class="text-center">
+  <div class="flex items-center space-x-2 bg-slate-800/80 px-3 py-1 rounded-lg border border-slate-700 text-xs">
+<i class="fa-solid fa-camera-rotate text-cyan-400"></i>
+<span class="text-slate-400 font-orbitron">CAMERA:</span>
+<select id="cameraFacingSelect" onchange="changeCameraFacing(this.value)" class="bg-slate-900 text-cyan-300 border border-slate-700 rounded px-1.5 py-0.5 focus:outline-none text-xs font-bold" aria-label="Camera direction">
+<option value="user">FRONT</option>
+<option value="environment">BACK</option>
+</select>
+</div>
+  <div class="flex items-center space-x-2 bg-slate-800/80 px-3 py-1 rounded-lg border border-slate-700 text-xs">
+<i class="fa-solid fa-video text-amber-400"></i>
+<span class="text-slate-400 font-orbitron">VIEW:</span>
+<select id="cameraViewSelect" onchange="changeCameraView(this.value)" class="bg-slate-900 text-amber-300 border border-slate-700 rounded px-1.5 py-0.5 focus:outline-none text-xs font-bold" aria-label="Scene view">
+<option value="FRONT">FRONT</option>
+<option value="SIDE">SIDE</option>
+<option value="REAR">REAR</option>
+</select>
+</div>
+  <div class="text-center">
 <span class="text-[10px] text-slate-400 block uppercase font-orbitron tracking-widest">Game Mode</span>
 <span id="gameModeDisplay" class="font-orbitron font-bold text-cyan-400 text-xs sm:text-sm">1P VS ADAPTIVE AI</span>
 </div>
@@ -294,6 +311,10 @@ let selectedP1Char=CHARACTERS.GONE;
 let selectedP2Char=CHARACTERS.RAONE;
 let scene,camera,cameraP1,cameraP2,renderer,toonGradientMap;
 let splitScreenOn=true;
+let cameraView='FRONT';
+let cameraFacingMode='user';
+let cameraStream=null;
+let poseLoopRunning=false;
 let playerFighter3D,aiFighter3D;
 let beamMesh=null,particles3D=[],auraSprites=[];
 let speedLinesActive=false,speedLinesTimer=0;
@@ -1094,14 +1115,11 @@ function animate3D(now){
   fxCanvas.width=fxCanvas.clientWidth;fxCanvas.height=fxCanvas.clientHeight;
 
   if(cameraShake>0){
-    camera.position.x=(Math.random()-0.5)*0.22*(cameraShake/8);
-    camera.position.y=2.6+(Math.random()-0.5)*0.2*(cameraShake/8);
+    camera.position.x+=(Math.random()-0.5)*0.22*(cameraShake/8);
+    camera.position.y+=(Math.random()-0.5)*0.2*(cameraShake/8);
     cameraShake=Math.max(0,cameraShake-1);
-  }else{
-    camera.position.x=lerp(camera.position.x,0,0.1);
-    camera.position.y=lerp(camera.position.y,2.6,0.1);
   }
-  camera.lookAt(0,1.25,0);
+  updateMainCameraView();
 
   if(playerFighter3D)updateFighterRig(playerFighter3D,player,player.stance,false,dt);
   if(aiFighter3D)updateFighterRig(aiFighter3D,ai,ai.stance,true,dt);
@@ -1143,7 +1161,34 @@ function toggleSplitScreen(){
 
 /* ============================= CAMERA / MEDIAPIPE ============================= */
 let cameraInstance=null,poseInstance=null;
-function initCamera(){
+function stopCameraStream(){
+  poseLoopRunning=false;
+  if(cameraStream){cameraStream.getTracks().forEach(track=>track.stop());cameraStream=null;}
+  const video=document.getElementById('webcamInput');
+  if(video)video.srcObject=null;
+  cameraInstance=null;
+}
+function changeCameraFacing(mode){
+  cameraFacingMode=mode==='environment'?'environment':'user';
+  if(cameraStream) initCamera();
+}
+function changeCameraView(view){
+  cameraView=['FRONT','SIDE','REAR'].includes(view)?view:'FRONT';
+  const select=document.getElementById('cameraViewSelect');
+  if(select)select.value=cameraView;
+  updateMainCameraView(true);
+}
+function updateMainCameraView(force=false){
+  if(!camera)return;
+  const targets={FRONT:{x:0,z:10},SIDE:{x:10,z:0},REAR:{x:0,z:-10}};
+  const target=targets[cameraView]||targets.FRONT;
+  const smoothing=force?1:0.12;
+  camera.position.x=lerp(camera.position.x,target.x,smoothing);
+  camera.position.z=lerp(camera.position.z,target.z,smoothing);
+  camera.position.y=lerp(camera.position.y,2.6,smoothing);
+  camera.lookAt(0,1.25,0);
+}
+async function initCamera(){
   if(selectedGameMode==='CAM2P'){initDualCamera();return;}
   if(!navigator.mediaDevices?.getUserMedia){
     updateGestureStatus('WEBCAM UNAVAILABLE - USE MANUAL CONTROLS','text-rose-400');
@@ -1153,8 +1198,10 @@ function initCamera(){
   dualCamMode=false;
   sound.init();
   if(gameState==='START'||gameState==='OVER')startMatch();
+  stopCameraStream();
   const videoElement=document.getElementById('webcamInput');
-  poseInstance=new Pose({locateFile:(file)=>`https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`});
+  try{
+    poseInstance=new Pose({locateFile:(file)=>`https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`});
   poseInstance.setOptions({modelComplexity:1,smoothLandmarks:true,enableSegmentation:false,minDetectionConfidence:0.6,minTrackingConfidence:0.6});
   poseInstance.onResults((results)=>{
     pipCtx.save();pipCtx.clearRect(0,0,pipCanvas.width,pipCanvas.height);
@@ -1166,10 +1213,19 @@ function initCamera(){
     }else{processPose(null);}
     pipCtx.restore();
   });
-  try{
-    cameraInstance=new Camera(videoElement,{onFrame:async()=>{if(poseInstance&&videoElement.readyState>=2)await poseInstance.send({image:videoElement});},width:640,height:480});
-    cameraInstance.start();
-    updateGestureStatus('CAMERA READY - STAND IN VIEW','text-emerald-400');
+    cameraStream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:640},height:{ideal:480},facingMode:{ideal:cameraFacingMode}},audio:false});
+    videoElement.srcObject=cameraStream;
+    await videoElement.play();
+    poseLoopRunning=true;
+    const sendFrame=async()=>{
+      if(!poseLoopRunning)return;
+      try{if(poseInstance&&videoElement.readyState>=2)await poseInstance.send({image:videoElement});}
+      catch(error){console.warn('Pose frame skipped',error);}
+      requestAnimationFrame(sendFrame);
+    };
+    cameraInstance={stop:stopCameraStream};
+    sendFrame();
+    updateGestureStatus(`${cameraFacingMode==='environment'?'BACK':'FRONT'} CAMERA READY - STAND IN VIEW`,'text-emerald-400');
   }catch(error){
     console.error('Camera tracking failed to start',error);
     updateGestureStatus('CAMERA FAILED - USE MANUAL CONTROLS','text-rose-400');
@@ -1191,7 +1247,9 @@ async function initDualCamera(){
   const videoElement=document.getElementById('webcamInput');
   try{
     if(!navigator.mediaDevices?.getUserMedia)throw new Error('Camera API unavailable');
-    const stream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480,facingMode:'user'},audio:false});
+    const stream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480,facingMode:{ideal:cameraFacingMode}},audio:false});
+    cameraStream=stream;
+    cameraInstance={stop:stopCameraStream};
     videoElement.srcObject=stream;
     await videoElement.play();
     const vision=await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs');
@@ -1244,8 +1302,7 @@ function drawSkeleton(lm,color){
 }
 function stopDualCamera(){
   dualCamRunning=false;dualCamMode=false;
-  const videoElement=document.getElementById('webcamInput');
-  if(videoElement.srcObject){videoElement.srcObject.getTracks().forEach(t=>t.stop());videoElement.srcObject=null;}
+  stopCameraStream();
 }
 
 /* ============================= MANUAL CONTROLS ============================= */
