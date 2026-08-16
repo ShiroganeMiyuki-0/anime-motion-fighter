@@ -149,7 +149,7 @@ ANIME MOTION <span class="text-[10px] text-amber-400 border border-amber-500/40 
 <div class="w-[45%] max-w-xs md:max-w-md bg-slate-900/85 p-2.5 sm:p-3 rounded-xl border border-cyan-500/40 backdrop-blur neon-border-blue">
 <div class="flex justify-between items-center mb-1">
 <span id="p1NameText" class="font-orbitron text-xs sm:text-sm font-bold text-cyan-400 flex items-center gap-1.5"><i class="fa-solid fa-user text-cyan-300"></i> P1: G.ONE</span>
-<span id="playerHpText" class="font-orbitron text-xs text-cyan-300">100 / 100</span>
+<span class="font-orbitron text-[10px] text-amber-300">PTS <b id="playerScoreText">0</b></span><span id="playerHpText" class="font-orbitron text-xs text-cyan-300">100 / 100</span>
 </div>
 <div class="w-full bg-slate-950 h-3.5 sm:h-4 rounded-full overflow-hidden p-0.5 border border-slate-800">
 <div id="playerHpBar" class="bg-gradient-to-r from-cyan-500 via-emerald-400 to-emerald-300 h-full rounded-full w-full transition-all duration-200"></div>
@@ -169,7 +169,7 @@ ANIME MOTION <span class="text-[10px] text-amber-400 border border-amber-500/40 
 <div class="w-[45%] max-w-xs md:max-w-md bg-slate-900/85 p-2.5 sm:p-3 rounded-xl border border-rose-500/40 backdrop-blur neon-border-red">
 <div class="flex justify-between items-center mb-1">
 <span id="p2NameText" class="font-orbitron text-xs sm:text-sm font-bold text-rose-400 flex items-center gap-1.5"><i class="fa-solid fa-skull text-rose-500"></i> RA.ONE (AI)</span>
-<span id="aiHpText" class="font-orbitron text-xs text-rose-300">100 / 100</span>
+<span class="font-orbitron text-[10px] text-amber-300">PTS <b id="aiScoreText">0</b></span><span id="aiHpText" class="font-orbitron text-xs text-rose-300">100 / 100</span>
 </div>
 <div class="w-full bg-slate-950 h-3.5 sm:h-4 rounded-full overflow-hidden p-0.5 border border-slate-800">
 <div id="aiHpBar" class="bg-gradient-to-r from-rose-600 via-red-500 to-amber-500 h-full rounded-full w-full transition-all duration-200"></div>
@@ -186,9 +186,10 @@ ANIME MOTION <span class="text-[10px] text-amber-400 border border-amber-500/40 
 
 <video id="webcamInput" class="hidden" playsinline></video>
 
-<div class="absolute bottom-3 left-3 w-36 h-28 sm:w-52 sm:h-36 bg-slate-900/90 rounded-xl overflow-hidden border border-slate-700 shadow-2xl z-20 backdrop-blur">
+<div id="cameraFeedPanel" class="absolute bottom-3 left-3 w-[min(42vw,420px)] h-[min(30vw,280px)] min-w-[220px] min-h-[150px] bg-slate-900/90 rounded-xl overflow-hidden border border-slate-700 shadow-2xl z-20 backdrop-blur">
 <canvas id="pipCanvas" class="w-full h-full object-cover mirror"></canvas>
-<div class="absolute top-1 left-1.5 text-[9px] font-orbitron text-cyan-300 bg-slate-950/80 px-1.5 py-0.5 rounded border border-cyan-500/30"><i class="fa-solid fa-person text-cyan-400 mr-1"></i>P1 ML TRACKER</div>
+<div class="absolute top-1 left-1.5 text-[9px] font-orbitron text-cyan-300 bg-slate-950/80 px-1.5 py-0.5 rounded border border-cyan-500/30"><i class="fa-solid fa-video text-cyan-400 mr-1"></i>LIVE CAMERA</div>
+<button onclick="toggleDebugPoseOverlay()" class="absolute top-1 right-1.5 text-[9px] font-orbitron text-slate-300 bg-slate-950/80 px-1.5 py-0.5 rounded border border-slate-600 hover:border-amber-400" title="Toggle optional pose debug overlay">DEBUG</button>
 <div class="absolute bottom-1 left-1.5 right-1.5 flex justify-between items-center text-[9px] font-orbitron text-slate-300 bg-black/80 px-1.5 py-0.5 rounded">
 <span>VELOCITY:</span><span id="speedMetric" class="text-amber-400 font-bold">0.00</span>
 </div>
@@ -350,6 +351,7 @@ let cameraView=localStorage.getItem('amf-camera-view')||'FRONT';
 let cameraFacingMode=localStorage.getItem('amf-camera-facing')||'user';
 let cameraStream=null;
 let poseLoopRunning=false;
+let debugPoseOverlay=false;
 let playerFighter3D,aiFighter3D;
 let beamMesh=null,particles3D=[],auraSprites=[];
 let speedLinesActive=false,speedLinesTimer=0;
@@ -361,6 +363,7 @@ let currentRound=1,p1RoundWins=0,p2RoundWins=0,roundsToWin=2,roundLocked=false;
 const THREAT_TIERS=['MINION BOT','ELITE GUARD','SHADOW ACE','OVERLORD PRIME','APEX ANNIHILATOR'];
 function tierName(lvl){return THREAT_TIERS[Math.min(lvl-1,THREAT_TIERS.length-1)];}
 let cameraShake=0,hitStopFrames=0;
+let playerScore=0,aiScore=0;
 let lastTime=performance.now();
 let runtimeBooted=false;
 
@@ -671,85 +674,34 @@ function buildFighterRig(charConfig,isEnemy){
   };
 }
 
-/* ============================= POSE PROCESSING ============================= */
-// MediaPipe indices: 0 nose,11/12 shoulders,13/14 elbows,15/16 wrists,23/24 hips,25/26 knees,27/28 ankles
+/* ============================= MINIMAL POSE COMBAT ============================= */
+// Hands (15/16) and feet (27/28) are the only attack points. The opponent's
+// torso is one target. Gesture complexity is intentionally deferred.
 function processPose(landmarks){
   liveVisible=!!landmarks;
   if(!landmarks||gameState!=='PLAYING'||roundLocked){livePoseLandmarks=null;return;}
   const smoothed=smoother.filter(landmarks);
   livePoseLandmarks=smoothed;
-  const nose=smoothed[0];
-  const shL=smoothed[11],shR=smoothed[12];
-  const elL=smoothed[13],elR=smoothed[14];
-  const wrL=smoothed[15],wrR=smoothed[16];
-  const hipL=smoothed[23],hipR=smoothed[24];
-  const knL=smoothed[25],knR=smoothed[26];
-  const anL=smoothed[27],anR=smoothed[28];
+  const wrists=[smoothed[15],smoothed[16]],feet=[smoothed[27],smoothed[28]];
   const now=performance.now();
-
-  // Lean-based sidestep dodge: slow baseline recentres on where you're standing,
-  // fast deviation from it reads as a dodge left/right.
-  const centerX=(shL.x+shR.x)/2;
-  if(player.dodgeBaseline===null)player.dodgeBaseline=centerX;
-  else player.dodgeBaseline=lerp(player.dodgeBaseline,centerX,0.01);
-  const leanOffset=centerX-player.dodgeBaseline;
-  player.dodgeZ=THREE.MathUtils.clamp(-leanOffset*4.5,-1.3,1.3);
-
-  let velocityArm=0;
-  if(prevWristL)velocityArm=Math.max(velocityArm,Math.hypot(wrL.x-prevWristL.x,wrL.y-prevWristL.y));
-  if(prevWristR)velocityArm=Math.max(velocityArm,Math.hypot(wrR.x-prevWristR.x,wrR.y-prevWristR.y));
-  let velocityLeg=0;
-  if(prevAnkleL)velocityLeg=Math.max(velocityLeg,Math.hypot(anL.x-prevAnkleL.x,anL.y-prevAnkleL.y));
-  if(prevAnkleR)velocityLeg=Math.max(velocityLeg,Math.hypot(anR.x-prevAnkleR.x,anR.y-prevAnkleR.y));
-  prevWristL=wrL;prevWristR=wrR;prevAnkleL=anL;prevAnkleR=anR;
-  document.getElementById('speedMetric').innerText=Math.max(velocityArm,velocityLeg).toFixed(3);
-
-  const wristDist=Math.hypot(wrL.x-wrR.x,wrL.y-wrR.y);
-  const distWrLNose=Math.hypot(wrL.x-nose.x,wrL.y-nose.y);
-  const distWrRNose=Math.hypot(wrR.x-nose.x,wrR.y-nose.y);
-  const torsoHeight=Math.abs((shL.y+shR.y)/2-(hipL.y+hipR.y)/2);
-  const legLength=Math.abs((hipL.y+hipR.y)/2-(anL.y+anR.y)/2);
-
-  // arm extension (straightness) 0..1 helps separate a real jab from a raised/bent arm
-  function armExtension(sh,el,wr){
-    const upper=Math.hypot(el.x-sh.x,el.y-sh.y);
-    const lower=Math.hypot(wr.x-el.x,wr.y-el.y);
-    const direct=Math.hypot(wr.x-sh.x,wr.y-sh.y);
-    return direct/Math.max(0.001,upper+lower);
-  }
-  const extL=armExtension(shL,elL,wrL),extR=armExtension(shR,elR,wrR);
-  const maxExt=Math.max(extL,extR);
-
-  if(distWrLNose<0.22&&distWrRNose<0.22){
-    player.stance='GUARD';player.isGuarding=true;player.isCrouching=false;player.isCharging=false;
-    ai.history.GUARD++;updateGestureStatus('SHIELD ACTIVE','text-cyan-400');
-  }else if(wristDist<0.15&&Math.abs(wrL.y-shL.y)<0.2){
-    player.stance='CHARGING';player.isGuarding=false;player.isCrouching=false;player.isCharging=true;
-    player.ki=Math.min(100,player.ki+2.0);ai.history.CHARGE++;
-    if(Math.random()<0.15)sound.playCharge();
-    updateGestureStatus('CHARGING KI ENERGY!','text-amber-400');updateHud();
-  }else if(player.ki>=100&&velocityArm>0.08&&wristDist<0.25){
-    executePlayerSuper(1);
-  }else if(torsoHeight/(legLength||1)>1.25||(hipL.y>0.65&&hipR.y>0.65)){
-    player.stance='CROUCH';player.isCrouching=true;player.isGuarding=false;player.isCharging=false;
-    ai.history.CROUCH++;updateGestureStatus('DUCKING / EVADING','text-purple-400');
-  }else if(velocityLeg>sensitivityThreshold*1.1&&(now-player.lastAttackTime>380)){
-    player.lastAttackTime=now;player.stance='KICK';
-    player.isCrouching=false;player.isGuarding=false;player.isCharging=false;
-    ai.history.KICK++;executePlayerKick(1);
-  }else if(velocityArm>sensitivityThreshold&&maxExt>0.82&&(now-player.lastAttackTime>320)){
-    player.lastAttackTime=now;player.stance='PUNCH';
-    player.isGuarding=false;player.isCrouching=false;player.isCharging=false;
-    ai.history.PUNCH++;executePlayerPunch(1);
+  let handVelocity=0,footVelocity=0;
+  if(prevWristL)handVelocity=Math.max(handVelocity,ptDist(wrists[0],prevWristL));
+  if(prevWristR)handVelocity=Math.max(handVelocity,ptDist(wrists[1],prevWristR));
+  if(prevAnkleL)footVelocity=Math.max(footVelocity,ptDist(feet[0],prevAnkleL));
+  if(prevAnkleR)footVelocity=Math.max(footVelocity,ptDist(feet[1],prevAnkleR));
+  prevWristL=wrists[0];prevWristR=wrists[1];prevAnkleL=feet[0];prevAnkleR=feet[1];
+  document.getElementById('speedMetric').innerText=Math.max(handVelocity,footVelocity).toFixed(3);
+  if(p1PhysicalHitCooldown>0){p1PhysicalHitCooldown--;return;}
+  if(footVelocity>sensitivityThreshold*0.9&&now-player.lastAttackTime>360){
+    player.lastAttackTime=now;player.stance='KICK';player.isGuarding=false;player.isCrouching=false;player.isCharging=false;
+    check3DSpatialCollision('FOOT',footVelocity);
+  }else if(handVelocity>sensitivityThreshold&&now-player.lastAttackTime>300){
+    player.lastAttackTime=now;player.stance='PUNCH';player.isGuarding=false;player.isCrouching=false;player.isCharging=false;
+    check3DSpatialCollision('HAND',handVelocity);
   }else{
     player.stance='READY';player.isGuarding=false;player.isCrouching=false;player.isCharging=false;
-    updateGestureStatus(liveVisible?'LIVE 1:1 REALTIME MOCAP':'STAND IN VIEW','text-emerald-400');
+    updateGestureStatus(liveVisible?'TRACKING HANDS + FEET':'STAND IN VIEW','text-emerald-400');
   }
-
-  if(p1PhysicalHitCooldown<=0){
-    if(velocityArm>sensitivityThreshold*0.8&&maxExt>0.78)check3DSpatialCollision('PUNCH',velocityArm);
-    else if(velocityLeg>sensitivityThreshold*0.9)check3DSpatialCollision('KICK',velocityLeg);
-  }else p1PhysicalHitCooldown--;
 }
 
 /* ---- Simple contact-based scoring for same-camera 2P mode ----
@@ -785,7 +737,8 @@ function checkDualCamCollisions(dt){
           p1LimbCooldown[ka]=0.4;p2LimbCooldown[kb]=0.4;
           const midX=(player.x+ai.x)/2;
           sound.playBlock();create3DHitSparks(midX,1.5,0,0x93c5fd,10);
-          addFloatingText('CLASH!',window.innerWidth*0.5,window.innerHeight*0.4,'#38bdf8');
+          addFloatingText('BLOCK',window.innerWidth*0.5,window.innerHeight*0.4,'#38bdf8');
+          updateGestureStatus('BLOCK — LIMBS CONTACT','text-cyan-400');
           triggerHitStop(2);
         }
       }
@@ -818,12 +771,14 @@ function landDualCamHit(fromP1,weapon){
   const attackerIsP1=fromP1;
   const target=attackerIsP1?ai:player;
   const attackerChar=attackerIsP1?selectedP1Char:selectedP2Char;
+  const points=weapon==='FOOT'?2:1;
   const damage=weapon==='FOOT'?16:10;
+  if(attackerIsP1)playerScore+=points;else aiScore+=points;
   sound.playHit();
   target.hp=Math.max(0,target.hp-damage);
   target.hitFlash=1;applyKnockback(target,attackerIsP1,weapon==='FOOT'?0.24:0.14);
   create3DHitSparks(target.x,1.6,0,attackerChar.colorHex,weapon==='FOOT'?16:10);
-  addFloatingText(`-${damage} ${weapon}`,window.innerWidth*(attackerIsP1?0.7:0.3),window.innerHeight*0.4,'#f43f5e');
+  addFloatingText(`+${points} ${weapon} HIT`,window.innerWidth*(attackerIsP1?0.7:0.3),window.innerHeight*0.4,'#fbbf24');
   if(attackerIsP1)incrementCombo();
   triggerHitStop(weapon==='FOOT'?4:3);flashScreen(0.1);
   updateHud();checkWinLoss();
@@ -831,14 +786,17 @@ function landDualCamHit(fromP1,weapon){
 
 function check3DSpatialCollision(type,velocity){
   if(!playerFighter3D||!aiFighter3D)return;
-  const p1Hand=new THREE.Vector3();playerFighter3D.armR.hand.getWorldPosition(p1Hand);
-  const p1Foot=new THREE.Vector3();playerFighter3D.legR.foot.getWorldPosition(p1Foot);
-  const p2Body=new THREE.Vector3();aiFighter3D.group.getWorldPosition(p2Body);p2Body.y+=1.5;
-  const attackPos=type==='PUNCH'?p1Hand:p1Foot;
-  if(attackPos.distanceTo(p2Body)<2.6){
+  const hand=new THREE.Vector3();playerFighter3D.armR.hand.getWorldPosition(hand);
+  const foot=new THREE.Vector3();playerFighter3D.legR.foot.getWorldPosition(foot);
+  const body=new THREE.Vector3();aiFighter3D.group.getWorldPosition(body);body.y+=1.5;
+  const attackPos=type==='HAND'?hand:foot;
+  if(attackPos.distanceTo(body)<2.6){
     p1PhysicalHitCooldown=18;
-    if(type==='PUNCH')executePlayerPunch(1);else executePlayerKick(1);
-  }
+    playerScore+=type==='FOOT'?2:1;
+    if(type==='HAND')executePlayerPunch(1);else executePlayerKick(1);
+    addFloatingText(`+${type==='FOOT'?2:1} HIT`,window.innerWidth*0.7,window.innerHeight*0.4,'#fbbf24');
+    updateHud();
+  }else updateGestureStatus(`SWING ${type==='FOOT'?'FOOT':'HAND'} — MISS`,'text-amber-400');
 }
 
 /* ============================= COMBAT ============================= */
@@ -1213,6 +1171,10 @@ function syncPreferenceControls(){
   if(view)view.value=cameraView;
   if(mobileView)mobileView.value=cameraView;
 }
+function toggleDebugPoseOverlay(){
+  debugPoseOverlay=!debugPoseOverlay;
+  updateGestureStatus(debugPoseOverlay?'DEBUG OVERLAY ON':'DEBUG OVERLAY OFF',debugPoseOverlay?'text-amber-400':'text-cyan-400');
+}
 function toggleMobileSettings(){
   const panel=document.getElementById('mobileSettingsPanel');
   const button=document.querySelector('[aria-controls="mobileSettingsPanel"]');
@@ -1261,8 +1223,10 @@ async function initCamera(){
     pipCtx.save();pipCtx.clearRect(0,0,pipCanvas.width,pipCanvas.height);
     pipCtx.drawImage(results.image,0,0,pipCanvas.width,pipCanvas.height);
     if(results.poseLandmarks){
-      drawConnectors(pipCtx,results.poseLandmarks,POSE_CONNECTIONS,{color:'#38bdf8',lineWidth:2});
-      drawLandmarks(pipCtx,results.poseLandmarks,{color:'#fbbf24',radius:2});
+      if(debugPoseOverlay){
+        drawConnectors(pipCtx,results.poseLandmarks,POSE_CONNECTIONS,{color:'#38bdf8',lineWidth:2});
+        drawLandmarks(pipCtx,results.poseLandmarks,{color:'#fbbf24',radius:2});
+      }
       processPose(results.poseLandmarks);
     }else{processPose(null);}
     pipCtx.restore();
@@ -1337,8 +1301,10 @@ function dualCamLoop(videoElement){
       livePoseLandmarks=rawP1?smoother.filter(rawP1):null;
       p2LiveLandmarks=rawP2?p2Smoother.filter(rawP2):null;
       liveVisible=!!livePoseLandmarks;
-      if(rawP1)drawSkeleton(rawP1,'#38bdf8');
-      if(rawP2)drawSkeleton(rawP2,'#f43f5e');
+      if(debugPoseOverlay){
+        if(rawP1)drawSkeleton(rawP1,'#38bdf8');
+        if(rawP2)drawSkeleton(rawP2,'#f43f5e');
+      }
       updateGestureStatus((livePoseLandmarks&&p2LiveLandmarks)?'BOTH FIGHTERS TRACKED':'WAITING FOR BOTH PLAYERS...',(livePoseLandmarks&&p2LiveLandmarks)?'text-emerald-400':'text-amber-400');
     }else{
       livePoseLandmarks=null;p2LiveLandmarks=null;
@@ -1403,6 +1369,8 @@ function updateGestureStatus(text,colorClass){
   el.className='font-orbitron text-[10px] sm:text-xs font-bold bg-slate-900/95 border border-amber-500/40 px-3 py-1 rounded-full uppercase tracking-wider backdrop-blur shadow-xl '+colorClass;
 }
 function updateHud(){
+  document.getElementById('playerScoreText').innerText=playerScore;
+  document.getElementById('aiScoreText').innerText=aiScore;
   document.getElementById('playerHpText').innerText=`${Math.ceil(player.hp)} / ${player.maxHp}`;
   document.getElementById('aiHpText').innerText=`${Math.ceil(ai.hp)} / ${ai.maxHp}`;
   document.getElementById('playerHpBar').style.width=`${(player.hp/player.maxHp)*100}%`;
@@ -1483,7 +1451,7 @@ async function startNextRound(){
   roundLocked=false;
 }
 function startMatch(){
-  currentRound=1;p1RoundWins=0;p2RoundWins=0;roundLocked=true;
+  currentRound=1;p1RoundWins=0;p2RoundWins=0;playerScore=0;aiScore=0;roundLocked=true;
   const p2Suffix=selectedGameMode==='1P'?' (AI)':selectedGameMode==='CAM2P'?' (P2 - CAM)':' (P2)';
   document.getElementById('p1NameText').innerHTML=`<i class="fa-solid fa-user text-cyan-300"></i> P1: ${selectedP1Char.name}`;
   document.getElementById('p2NameText').innerHTML=`<i class="fa-solid fa-skull text-rose-500"></i> ${selectedP2Char.name}${p2Suffix}`;
