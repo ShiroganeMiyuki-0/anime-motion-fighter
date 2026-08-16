@@ -453,9 +453,19 @@ _arenaBorders.push(borderLine);
   for(let i=0;i<8;i++){const c=neonColors[i%neonColors.length];const sg=new THREE.PlaneGeometry(2+Math.random()*2,0.4+Math.random()*0.3);const sign=new THREE.Mesh(sg,new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:0.6}));const a=Math.random()*Math.PI*2,d=25+Math.random()*10;sign.position.set(Math.cos(a)*d,3+Math.random()*6,Math.sin(a)*d);sign.lookAt(0,sign.position.y,0);S.add(sign);
     // Store for animation
     if(!window._neonSigns)window._neonSigns=[];
-    _neonSigns.push({mesh:sign,phase:Math.random()*Math.PI*2,baseOpacity:0.6});S.add(new THREE.PointLight(c,0.5,8).copy(sign.position))}
+    _neonSigns.push({mesh:sign,phase:Math.random()*Math.PI*2,baseOpacity:0.6});const signLight=new THREE.PointLight(c,0.5,8);signLight.position.copy(sign.position);S.add(signLight)}
   const pg=new THREE.BufferGeometry();const pp=new Float32Array(200*3);for(let i=0;i<600;i++){pp[i]=(Math.random()-0.5)*40;pp[i+1]=Math.random()*15;pp[i+2]=(Math.random()-0.5)*30}pg.setAttribute('position',new THREE.BufferAttribute(pp,3));
   envP=new THREE.Points(pg,new THREE.PointsMaterial({color:T.neon,size:0.05,transparent:true,opacity:0.35,sizeAttenuation:true,blending:THREE.AdditiveBlending}));S.add(envP);
+
+  // Ground fog layer
+  const fogGeo=new THREE.PlaneGeometry(W+10,D+10);
+  const fogMat=new THREE.MeshBasicMaterial({color:T.neon,transparent:true,opacity:0.03,side:THREE.DoubleSide});
+  const fogPlane=new THREE.Mesh(fogGeo,fogMat);
+  fogPlane.rotation.x=-Math.PI/2;fogPlane.position.y=0.1;S.add(fogPlane);
+  if(!window._groundFog)window._groundFog=fogPlane;
+
+  // Arena details (crystals, debris, scorch marks)
+  addArenaDetails();
 
   // Pulsing arena lights
   if(!window._arenaLights)window._arenaLights=[];
@@ -493,15 +503,6 @@ function addArenaDetails(){
     S.add(mesh);arenaDetails.push(mesh);
   }
 }
-addArenaDetails();
-
-  // Ground fog layer
-  const fogGeo=new THREE.PlaneGeometry(W+10,D+10);
-  const fogMat=new THREE.MeshBasicMaterial({color:T.neon,transparent:true,opacity:0.03,side:THREE.DoubleSide});
-  const fogPlane=new THREE.Mesh(fogGeo,fogMat);
-  fogPlane.rotation.x=-Math.PI/2;fogPlane.position.y=0.1;S.add(fogPlane);
-  if(!window._groundFog)window._groundFog=fogPlane
-
 function updateEnv(dt){
   // Pulse arena lights
   if(window._arenaLights){const t=performance.now()*0.001;_arenaLights.forEach(l=>{l.light.intensity=l.baseIntensity*(1+Math.sin(t*2+l.phase)*0.12+Math.random()*0.03)})}
