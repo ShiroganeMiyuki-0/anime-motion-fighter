@@ -67,6 +67,9 @@ ANIME MOTION <span class="text-[10px] text-amber-400 border border-amber-500/40 
 <button onclick="openModeSelectModal()" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 rounded-lg text-xs font-orbitron border border-slate-700 flex items-center space-x-1 transition">
 <i class="fa-solid fa-users"></i><span class="hidden md:inline">CHANGE MODE</span>
 </button>
+<button id="splitToggleBtn" onclick="toggleSplitScreen()" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded-lg text-xs font-orbitron border border-slate-700 flex items-center space-x-1 transition">
+<i class="fa-solid fa-table-columns"></i><span class="hidden md:inline">SPLIT POV</span>
+</button>
 <button id="toggleControlsBtn" onclick="toggleKeyboardFallback()" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded-lg text-xs font-orbitron border border-slate-700 flex items-center space-x-1 transition">
 <i class="fa-solid fa-gamepad"></i><span class="hidden md:inline">MANUAL CONTROLS</span>
 </button>
@@ -285,7 +288,8 @@ const CHARACTERS={
 let selectedGameMode='1P';
 let selectedP1Char=CHARACTERS.GONE;
 let selectedP2Char=CHARACTERS.RAONE;
-let scene,camera,renderer,toonGradientMap;
+let scene,camera,cameraP1,cameraP2,renderer,toonGradientMap;
+let splitScreenOn=true;
 let playerFighter3D,aiFighter3D;
 let beamMesh=null,particles3D=[],auraSprites=[];
 let speedLinesActive=false,speedLinesTimer=0;
@@ -302,8 +306,8 @@ let livePoseLandmarks=null,liveVisible=false;
 let p1PhysicalHitCooldown=0;
 let prevWristL=null,prevWristR=null,prevAnkleL=null,prevAnkleR=null;
 
-const player={x:-3.2,y:0,hp:100,maxHp:100,ki:0,maxKi:100,stance:'IDLE',lastAttackTime:0,isGuarding:false,isCharging:false,isCrouching:false,knockback:0,hitFlash:0,dodgeZ:0,dodgeBaseline:null};
-const ai={x:3.2,y:0,hp:100,maxHp:100,ki:0,maxKi:100,stance:'IDLE',actionTimer:0,reactionDelay:600,lastAttackTime:0,isGuarding:false,isCharging:false,isCrouching:false,knockback:0,hitFlash:0,
+const player={x:-3.2,y:0,hp:100,maxHp:100,ki:0,maxKi:100,stance:'IDLE',lastAttackTime:0,isGuarding:false,isCharging:false,isCrouching:false,knockback:0,hitFlash:0,dodgeZ:0,dodgeBaseline:null,homeX:-3.2};
+const ai={x:3.2,y:0,hp:100,maxHp:100,ki:0,maxKi:100,stance:'IDLE',actionTimer:0,reactionDelay:600,lastAttackTime:0,isGuarding:false,isCharging:false,isCrouching:false,knockback:0,hitFlash:0,homeX:3.2,
   history:{PUNCH:0,KICK:0,GUARD:0,CROUCH:0,CHARGE:0}};
 
 /* ============================= 3D WORLD ============================= */
@@ -326,6 +330,9 @@ function init3DWorld(){
   camera=new THREE.PerspectiveCamera(42,container.clientWidth/container.clientHeight,0.1,100);
   camera.position.set(0,2.6,10);
   camera.lookAt(0,1.25,0);
+  const halfAspect=(container.clientWidth/2)/container.clientHeight;
+  cameraP1=new THREE.PerspectiveCamera(58,halfAspect,0.1,100);
+  cameraP2=new THREE.PerspectiveCamera(58,halfAspect,0.1,100);
   renderer=new THREE.WebGLRenderer({antialias:true});
   renderer.setSize(container.clientWidth,container.clientHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
@@ -396,7 +403,20 @@ function onWindowResize(){
   const container=document.getElementById('webglContainer');
   camera.aspect=container.clientWidth/container.clientHeight;
   camera.updateProjectionMatrix();
+  const halfAspect=(container.clientWidth/2)/container.clientHeight;
+  cameraP1.aspect=halfAspect;cameraP1.updateProjectionMatrix();
+  cameraP2.aspect=halfAspect;cameraP2.updateProjectionMatrix();
   renderer.setSize(container.clientWidth,container.clientHeight);
+}
+// Each player's own over-the-shoulder POV, facing their opponent -
+// mirrors the split-screen layout of local-multiplayer racing games.
+function updateSplitCameras(){
+  const pX=playerFighter3D.group.position.x,pZ=playerFighter3D.group.position.z;
+  const aX=aiFighter3D.group.position.x,aZ=aiFighter3D.group.position.z;
+  cameraP1.position.set(pX-2.6,2.15,pZ+1.1);
+  cameraP1.lookAt(aX,1.35,aZ);
+  cameraP2.position.set(aX+2.6,2.15,aZ-1.1);
+  cameraP2.lookAt(pX,1.35,pZ);
 }
 
 /* ============================= FIGHTER RIG ============================= */
@@ -898,7 +918,7 @@ function updateFighterRig(rig,entity,stance,isEnemy,dt){
     if(Math.abs(entity.knockback)<0.01)entity.knockback=0;
   }
   // settle back toward home x
-  const homeX=entity===player?player.homeX:ai.homeX;
+  const homeX=(entity===player?player.homeX:ai.homeX)??(isEnemy?3.2:-3.2);
   rig.group.position.x=lerp(rig.group.position.x,homeX,0.06);
 
   // lean-based sidestep dodge (player only, driven by webcam)
@@ -918,6 +938,15 @@ function updateFighterRig(rig,entity,stance,isEnemy,dt){
 
 function renderAnimeOverlayFX(){
   fxCtx.clearRect(0,0,fxCanvas.width,fxCanvas.height);
+  if(splitScreenOn){
+    const midX=fxCanvas.width/2;
+    fxCtx.strokeStyle='rgba(148,163,184,0.55)';fxCtx.lineWidth=2;
+    fxCtx.beginPath();fxCtx.moveTo(midX,0);fxCtx.lineTo(midX,fxCanvas.height);fxCtx.stroke();
+    fxCtx.font='700 12px Orbitron';fxCtx.textAlign='center';
+    fxCtx.fillStyle='rgba(56,189,248,0.85)';fxCtx.fillText('P1 POV',midX/2,26);
+    fxCtx.fillStyle='rgba(244,63,94,0.85)';fxCtx.fillText(selectedGameMode==='1P'?'AI POV':'P2 POV',midX+midX/2,26);
+    fxCtx.textAlign='left';
+  }
   if(speedLinesActive){
     fxCtx.strokeStyle='rgba(56,189,248,0.22)';fxCtx.lineWidth=2;
     const cx=fxCanvas.width/2,cy=fxCanvas.height/2;
@@ -943,7 +972,7 @@ function renderAnimeOverlayFX(){
 function animate3D(now){
   requestAnimationFrame(animate3D);
   let delta=now-lastTime;lastTime=now;
-  if(gameState==='PAUSED'){renderer.render(scene,camera);return;}
+  if(gameState==='PAUSED'){renderSceneView();return;}
   if(hitStopFrames>0){hitStopFrames--;delta*=0.15;}
   const dt=Math.min(delta,50)/1000;
 
@@ -961,6 +990,7 @@ function animate3D(now){
 
   if(playerFighter3D)updateFighterRig(playerFighter3D,player,player.stance,false,dt);
   if(aiFighter3D)updateFighterRig(aiFighter3D,ai,ai.stance,true,dt);
+  if(playerFighter3D&&aiFighter3D)updateSplitCameras();
 
   for(let i=particles3D.length-1;i>=0;i--){
     const p=particles3D[i];
@@ -970,9 +1000,29 @@ function animate3D(now){
     if(p.userData.life<=0){scene.remove(p);particles3D.splice(i,1);}
   }
 
-  if(renderer&&scene&&camera)renderer.render(scene,camera);
+  renderSceneView();
   renderAnimeOverlayFX();
   updateAdaptiveAI(delta);
+}
+function renderSceneView(){
+  if(!renderer||!scene)return;
+  const container=document.getElementById('webglContainer');
+  const w=container.clientWidth,h=container.clientHeight;
+  if(splitScreenOn&&cameraP1&&cameraP2){
+    renderer.setScissorTest(true);
+    renderer.setViewport(0,0,w/2,h);renderer.setScissor(0,0,w/2,h);
+    renderer.render(scene,cameraP1);
+    renderer.setViewport(w/2,0,w/2,h);renderer.setScissor(w/2,0,w/2,h);
+    renderer.render(scene,cameraP2);
+    renderer.setScissorTest(false);
+    renderer.setViewport(0,0,w,h);
+  }else if(camera){
+    renderer.render(scene,camera);
+  }
+}
+function toggleSplitScreen(){
+  splitScreenOn=!splitScreenOn;
+  document.getElementById('splitToggleBtn').classList.toggle('text-cyan-300',splitScreenOn);
 }
 
 /* ============================= CAMERA / MEDIAPIPE ============================= */
