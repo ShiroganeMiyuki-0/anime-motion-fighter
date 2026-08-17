@@ -906,8 +906,28 @@ function executePlayerSuper(attackerNum){
 }
 
 /* ---- Adaptive AI: reads the player's move histogram and counters it ---- */
+function queueAIAction(action){
+  ai.pendingAction=action;
+  ai.telegraphTimer=420;
+  ai.stance='CHARGING';
+  ai.isCharging=true;
+  updateGestureStatus(action==='SUPER'?'INCOMING POWER — GUARD OR MOVE':'INCOMING ATTACK — READ THE TELEGRAPH','text-rose-300');
+}
 function updateAdaptiveAI(delta){
   if(selectedGameMode!=='1P'||dualCamMode||gameState!=='PLAYING'||roundLocked||!playerReadyForCombat)return;
+  if(ai.pendingAction){
+    ai.telegraphTimer-=delta;
+    ai.stance='CHARGING';
+    ai.isCharging=true;
+    if(ai.telegraphTimer<=0){
+      const action=ai.pendingAction;
+      ai.pendingAction=null;ai.isCharging=false;
+      if(action==='SUPER')executePlayerSuper(2);
+      else if(action==='PUNCH'){ai.stance='PUNCH';executePlayerPunch(2);}
+      else {ai.stance='KICK';executePlayerKick(2);}
+    }
+    return;
+  }
   ai.actionTimer+=delta;
   if(ai.actionTimer<ai.reactionDelay)return;
   ai.actionTimer=0;
@@ -917,15 +937,15 @@ function updateAdaptiveAI(delta){
   const favMove=Object.keys(h).reduce((a,b)=>h[b]>h[a]?b:a,'PUNCH');
   const aggro=Math.min(0.25,(gameLevel-1)*0.05); // higher tiers counter harder & bluff less
 
-  if(ai.ki>=100&&rand<0.8+aggro){executePlayerSuper(2);return;}
+  if(ai.ki>=100&&rand<0.8+aggro){queueAIAction('SUPER');return;}
   if(p1Stance==='PUNCH'&&rand<0.55+aggro){ai.stance='GUARD';ai.isGuarding=true;return;}
-  if(p1Stance==='CHARGING'&&rand<0.7+aggro){ai.stance='PUNCH';executePlayerPunch(2);return;}
+  if(p1Stance==='CHARGING'&&rand<0.7+aggro){queueAIAction('PUNCH');return;}
   // counter the player's favorite move
   if(favMove==='KICK'&&rand<0.35+aggro){ai.stance='CROUCH';ai.isCrouching=true;setTimeout(()=>ai.isCrouching=false,500);return;}
   if(favMove==='PUNCH'&&rand<0.3+aggro){ai.stance='GUARD';ai.isGuarding=true;setTimeout(()=>ai.isGuarding=false,450);return;}
   if(rand<0.35){ai.stance='CHARGING';ai.ki=Math.min(100,ai.ki+15);updateHud();return;}
-  if(rand<0.68){ai.stance='PUNCH';executePlayerPunch(2);return;}
-  ai.stance='KICK';executePlayerKick(2);
+  if(rand<0.68){queueAIAction('PUNCH');return;}
+  queueAIAction('KICK');
 }
 
 /* ============================= FX ============================= */
@@ -1502,6 +1522,7 @@ async function startNextRound(){
   ai.maxHp=100+(gameLevel-1)*15;ai.hp=ai.maxHp;ai.ki=0;ai.stance='IDLE';ai.knockback=0;ai.hitFlash=0;ai.homeX=3.2;ai.x=3.2;
   ai.reactionDelay=Math.max(260,620-(gameLevel-1)*70);
   ai.history={PUNCH:0,KICK:0,GUARD:0,CROUCH:0,CHARGE:0};
+  ai.pendingAction=null;ai.telegraphTimer=0;ai.isCharging=false;
   combo=0;document.getElementById('comboCounter').classList.add('hidden');
   rebuildFighters3D();
   updateHud();
