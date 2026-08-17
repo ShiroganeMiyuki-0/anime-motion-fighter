@@ -691,8 +691,10 @@ function processPose(landmarks){
   liveVisible=!!landmarks;
   if(!finiteLandmarks(landmarks)||gameState!=='PLAYING'||roundLocked){
     livePoseLandmarks=null;
+    playerReadyForCombat=false;
+    player.isGuarding=false;
     prevWristL=null;prevWristR=null;prevAnkleL=null;prevAnkleR=null;
-    if(gameState==='PLAYING'&&!roundLocked)setCombatPhase('TRACKING','STEP INTO FRAME','text-amber-300');
+    if(gameState==='PLAYING'&&!roundLocked)setCombatPhase('TRACKING','TRACKING LOST — STEP INTO FRAME OR USE MANUAL','text-amber-300');
     return;
   }
   const smoothed=smoother.filter(landmarks);
