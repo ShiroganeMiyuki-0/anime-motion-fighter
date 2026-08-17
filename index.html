@@ -388,6 +388,11 @@ window.addEventListener('pagehide',()=>{
 });
 let livePoseLandmarks=null,liveVisible=false;
 let dualCamMode=false,p2LiveLandmarks=null,dualCamRunning=false;
+let dualContactState={p1:Object.create(null),p2:Object.create(null)};
+function finiteLandmarks(lm){
+  const required=[11,12,15,16,23,24,27,28];
+  return Array.isArray(lm)&&lm.length>=29&&required.every(i=>Number.isFinite(lm[i]?.x)&&Number.isFinite(lm[i]?.y));
+}
 let p1LimbCooldown={LW:0,RW:0,LA:0,RA:0},p2LimbCooldown={LW:0,RW:0,LA:0,RA:0};
 const p2Smoother=new LandmarkSmoother(0.55);
 let p1PhysicalHitCooldown=0;
@@ -680,7 +685,11 @@ function buildFighterRig(charConfig,isEnemy){
 // torso is one target. Gesture complexity is intentionally deferred.
 function processPose(landmarks){
   liveVisible=!!landmarks;
-  if(!landmarks||gameState!=='PLAYING'||roundLocked){livePoseLandmarks=null;return;}
+  if(!finiteLandmarks(landmarks)||gameState!=='PLAYING'||roundLocked){
+    livePoseLandmarks=null;
+    prevWristL=null;prevWristR=null;prevAnkleL=null;prevAnkleR=null;
+    return;
+  }
   const smoothed=smoother.filter(landmarks);
   livePoseLandmarks=smoothed;
   const wrists=[smoothed[15],smoothed[16]],feet=[smoothed[27],smoothed[28]];
@@ -720,7 +729,11 @@ function ptDist(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
 const LIMB_POINTS={LW:15,RW:16,LA:27,RA:28};
 const BLOCK_RADIUS=0.075;
 function checkDualCamCollisions(dt){
-  if(!p1LiveLandmarksSafe()||!p2LiveLandmarksSafe())return;
+  if(!p1LiveLandmarksSafe()||!p2LiveLandmarksSafe()){
+    dualContactState.p1=Object.create(null);
+    dualContactState.p2=Object.create(null);
+    return;
+  }
   const lmA=livePoseLandmarks,lmB=p2LiveLandmarks;
   const boxA=torsoBox(lmA),boxB=torsoBox(lmB);
   for(const k in p1LimbCooldown)if(p1LimbCooldown[k]>0)p1LimbCooldown[k]-=dt;
@@ -747,26 +760,26 @@ function checkDualCamCollisions(dt){
   }
   // 2) hits: A's limb inside B's torso box (and not blocked / on cooldown)
   for(const ka in LIMB_POINTS){
-    if(blockedA[ka])continue;
-    if(p1LimbCooldown[ka]>0)continue;
     const ptA=lmA[LIMB_POINTS[ka]];
-    if(inBox(ptA,boxB)){
-      p1LimbCooldown[ka]=0.5;
-      landDualCamHit(true,ka.startsWith('L')||ka.startsWith('R')?ka[1]==='W'?'HAND':'FOOT':'HAND');
-    }
+    const inside=inBox(ptA,boxB);
+    const wasInside=dualContactState.p1[ka]===true;
+    dualContactState.p1[ka]=inside;
+    if(blockedA[ka]||p1LimbCooldown[ka]>0||!inside||wasInside)continue;
+    p1LimbCooldown[ka]=0.5;
+    landDualCamHit(true,ka[1]==='W'?'HAND':'FOOT');
   }
   for(const kb in LIMB_POINTS){
-    if(blockedB[kb])continue;
-    if(p2LimbCooldown[kb]>0)continue;
     const ptB=lmB[LIMB_POINTS[kb]];
-    if(inBox(ptB,boxA)){
-      p2LimbCooldown[kb]=0.5;
-      landDualCamHit(false,kb.startsWith('L')||kb.startsWith('R')?kb[1]==='W'?'HAND':'FOOT':'HAND');
-    }
+    const inside=inBox(ptB,boxA);
+    const wasInside=dualContactState.p2[kb]===true;
+    dualContactState.p2[kb]=inside;
+    if(blockedB[kb]||p2LimbCooldown[kb]>0||!inside||wasInside)continue;
+    p2LimbCooldown[kb]=0.5;
+    landDualCamHit(false,kb[1]==='W'?'HAND':'FOOT');
   }
 }
-function p1LiveLandmarksSafe(){return livePoseLandmarks&&livePoseLandmarks.length>=29;}
-function p2LiveLandmarksSafe(){return p2LiveLandmarks&&p2LiveLandmarks.length>=29;}
+function p1LiveLandmarksSafe(){return finiteLandmarks(livePoseLandmarks);}
+function p2LiveLandmarksSafe(){return finiteLandmarks(p2LiveLandmarks);}
 function landDualCamHit(fromP1,weapon){
   if(roundLocked)return;
   const attackerIsP1=fromP1;
