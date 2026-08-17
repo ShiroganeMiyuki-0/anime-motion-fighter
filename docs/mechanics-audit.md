@@ -43,3 +43,20 @@ The Fighter opening still presents a concise first-round objective, the original
 ## AI guard recovery
 
 When the adaptive opponent reacts to a player punch with Guard, it now communicates “OPPONENT GUARDS — RESET OR COUNTER” and exits that defensive stance after a bounded recovery window. This prevents a reactive guard from becoming an indefinite passive state.
+
+
+## Front-facing and side-facing camera contract
+
+The game now separates three choices that were previously easy to confuse. **Capture** selects the physical device lens (`FRONT` or `BACK`); **Arena** selects the 3D presentation camera (`FRONT`, `SIDE`, or `REAR`); and **Tracking** describes how the player stands relative to the selected lens (`FACING LENS` or `SIDE-FACING`). The arena view does not change which camera is capturing the player, so a Shadow Fight-style side arena can be used with either front- or back-camera capture.
+
+In `SIDE-FACING`, the player should turn roughly 70–90 degrees while keeping the full body, hands, feet, and shoulders visible. The contact rules remain the same—hands and feet are the action points, and the torso is the target—so the side preference changes presentation and guidance rather than secretly changing scoring thresholds. This keeps the game understandable and fair across orientations.
+
+## Camera preview privacy control
+
+The live camera preview is now an aesthetic, local preference rather than a requirement for tracking. **Hide Camera** removes only the picture-in-picture monitor; the hidden video element, camera stream, and pose loop continue until the player stops or changes the webcam. The button changes to **Show Camera**, uses an accessible pressed state, and persists the preference locally. This supports players who want the game to feel like a clean arena rather than a self-view screen without pretending that camera capture has stopped.
+
+Tracking-loss feedback now refers to the selected orientation. A side-facing player sees a direction such as “TURN PROFILE, KEEP HANDS + FEET VISIBLE” instead of a generic failure message. Manual controls remain the explicit fallback when camera access or pose tracking is unavailable.
+
+## Camera contract verification
+
+The local browser rendered the new independent controls for capture direction, arena view, tracking profile, and preview visibility. Selecting `SIDE-FACING` updated the persisted preference, and toggling the visibility control changed the label to `SHOW CAMERA` while leaving the tracking contract intact. Static JavaScript checks and the existing game verification script passed after the change.

@@ -84,6 +84,17 @@ ANIME MOTION <span class="text-[10px] text-amber-400 border border-amber-500/40 
 <option value="REAR">REAR</option>
 </select>
 </div>
+  <div class="flex items-center space-x-2 bg-slate-800/80 px-3 py-1 rounded-lg border border-slate-700 text-xs">
+<i class="fa-solid fa-person-walking text-emerald-400"></i>
+<span class="text-slate-400 font-orbitron">TRACK:</span>
+<select id="trackingProfileSelect" onchange="changeTrackingProfile(this.value)" class="bg-slate-900 text-emerald-300 border border-slate-700 rounded px-1.5 py-0.5 focus:outline-none text-xs font-bold" aria-label="Player body orientation">
+<option value="FRONT">FACING LENS</option>
+<option value="SIDE">SIDE-FACING</option>
+</select>
+</div>
+  <button id="cameraVisibilityBtn" onclick="toggleCameraVisibility()" class="flex items-center space-x-2 bg-slate-800/80 px-3 py-1 rounded-lg border border-slate-700 text-xs text-slate-300 hover:border-cyan-400" aria-pressed="false" title="Hide only the camera preview; tracking continues">
+<i class="fa-solid fa-eye-slash text-cyan-400"></i><span id="cameraVisibilityLabel" class="font-orbitron">HIDE CAMERA</span>
+</button>
   <div class="text-center">
 <span class="text-[10px] text-slate-400 block uppercase font-orbitron tracking-widest">Game Mode</span>
 <span id="gameModeDisplay" class="font-orbitron font-bold text-cyan-400 text-xs sm:text-sm">1P VS ADAPTIVE AI</span>
@@ -123,10 +134,12 @@ ANIME MOTION <span class="text-[10px] text-amber-400 border border-amber-500/40 
 </header>
 <div id="mobileSettingsPanel" class="hidden lg:hidden preference-panel absolute top-[76px] right-2 z-50 w-[min(92vw,360px)] rounded-xl p-4">
   <div class="flex items-center justify-between mb-3"><strong class="font-orbitron text-xs text-cyan-300 tracking-wider">PLAYER PREFERENCES</strong><button onclick="toggleMobileSettings()" class="text-slate-400 hover:text-white" aria-label="Close player preferences">✕</button></div>
-  <p class="text-xs text-slate-400 mb-3">Camera selects your device direction. View changes the arena perspective.</p>
+  <p class="text-xs text-slate-400 mb-3">Capture chooses the device lens. Arena chooses the game camera. Tracking chooses how you stand in front of that lens.</p>
   <div class="grid grid-cols-2 gap-3">
     <label class="text-[10px] text-slate-400 font-orbitron">CAMERA<select id="mobileCameraFacingSelect" onchange="changeCameraFacing(this.value)" class="mt-1 bg-slate-900 text-cyan-300 border border-slate-700 rounded px-2 py-2 text-xs" aria-label="Mobile camera direction"><option value="user">FRONT</option><option value="environment">BACK</option></select></label>
     <label class="text-[10px] text-slate-400 font-orbitron">ARENA VIEW<select id="mobileCameraViewSelect" onchange="changeCameraView(this.value)" class="mt-1 bg-slate-900 text-amber-300 border border-slate-700 rounded px-2 py-2 text-xs" aria-label="Mobile scene view"><option value="FRONT">FRONT</option><option value="SIDE">SIDE</option><option value="REAR">REAR</option></select></label>
+    <label class="text-[10px] text-slate-400 font-orbitron">TRACKING<select id="mobileTrackingProfileSelect" onchange="changeTrackingProfile(this.value)" class="mt-1 bg-slate-900 text-emerald-300 border border-slate-700 rounded px-2 py-2 text-xs" aria-label="Player body orientation"><option value="FRONT">FACING LENS</option><option value="SIDE">SIDE-FACING</option></select></label>
+    <button id="mobileCameraVisibilityBtn" onclick="toggleCameraVisibility()" class="mt-1 rounded border border-slate-700 bg-slate-900 px-2 py-2 text-[10px] font-orbitron text-slate-300" aria-pressed="false"><i class="fa-solid fa-eye-slash text-cyan-400 mr-1"></i><span id="mobileCameraVisibilityLabel">HIDE CAMERA</span></button>
   </div>
 </div>
 
@@ -185,9 +198,9 @@ ANIME MOTION <span class="text-[10px] text-amber-400 border border-amber-500/40 
 </div>
 </div>
 
-<video id="webcamInput" class="hidden" playsinline></video>
+<video id="webcamInput" class="hidden" playsinline aria-hidden="true"></video>
 
-<div id="cameraFeedPanel" class="absolute bottom-3 left-3 w-[min(30vw,300px)] h-[min(22vw,210px)] min-w-[180px] min-h-[120px] bg-slate-900/90 rounded-xl overflow-hidden border border-slate-700 shadow-2xl z-20 backdrop-blur opacity-0 pointer-events-none transition-opacity duration-300">
+<div id="cameraFeedPanel" class="absolute bottom-3 left-3 w-[min(30vw,300px)] h-[min(22vw,210px)] min-w-[180px] min-h-[120px] bg-slate-900/90 rounded-xl overflow-hidden border border-slate-700 shadow-2xl z-20 backdrop-blur opacity-0 pointer-events-none transition-opacity duration-300" aria-label="Camera preview; can be hidden without stopping tracking">
 <canvas id="pipCanvas" class="w-full h-full object-cover mirror"></canvas>
 <div class="absolute top-1 left-1.5 text-[9px] font-orbitron text-cyan-300 bg-slate-950/80 px-1.5 py-0.5 rounded border border-cyan-500/30"><i class="fa-solid fa-video text-cyan-400 mr-1"></i>LIVE CAMERA</div>
 <button onclick="toggleDebugPoseOverlay()" class="absolute top-1 right-1.5 text-[9px] font-orbitron text-slate-300 bg-slate-950/80 px-1.5 py-0.5 rounded border border-slate-600 hover:border-amber-400" title="Toggle optional pose debug overlay">DEBUG</button>
@@ -221,6 +234,8 @@ ANIME MOTION <span class="text-[10px] text-amber-400 border border-amber-500/40 
 <div class="onboarding-tips" aria-label="Quick start tips">
   <div class="onboarding-tip"><strong>CAPTURE</strong>Camera selects FRONT or BACK device direction.</div>
   <div class="onboarding-tip"><strong>ARENA</strong>View selects FRONT, SIDE, or REAR perspective.</div>
+  <div class="onboarding-tip"><strong>TRACK</strong>FACING LENS works front-on; SIDE-FACING is for a Shadow Fight-style profile stance.</div>
+  <div class="onboarding-tip"><strong>PRIVATE VIEW</strong>Hide the preview for a cleaner screen; pose tracking continues until you stop the webcam.</div>
   <div class="onboarding-tip"><strong>FALLBACK</strong>Manual controls remain available if tracking fails.</div>
 </div>
 <div id="overlayButtons" class="flex flex-col sm:flex-row gap-3">
@@ -349,8 +364,10 @@ let selectedP1Char=CHARACTERS.GONE;
 let selectedP2Char=CHARACTERS.RAONE;
 let scene,camera,cameraP1,cameraP2,renderer,toonGradientMap;
 let splitScreenOn=localStorage.getItem('amf-split-screen')==='true';
-let cameraView=localStorage.getItem('amf-camera-view')||'FRONT';
-let cameraFacingMode=localStorage.getItem('amf-camera-facing')||'user';
+let cameraView=['FRONT','SIDE','REAR'].includes(localStorage.getItem('amf-camera-view'))?localStorage.getItem('amf-camera-view'):'FRONT';
+let cameraFacingMode=localStorage.getItem('amf-camera-facing')==='environment'?'environment':'user';
+let trackingProfile=localStorage.getItem('amf-tracking-profile')==='SIDE'?'SIDE':'FRONT';
+let cameraFeedVisible=localStorage.getItem('amf-camera-preview')!=='hidden';
 let cameraStream=null;
 let poseLoopRunning=false;
 let debugPoseOverlay=false;
@@ -391,6 +408,7 @@ window.addEventListener('pagehide',()=>{
   renderer?.dispose?.();
 });
 let livePoseLandmarks=null,liveVisible=false;
+let trackingLossFrames=0;
 let dualCamMode=false,p2LiveLandmarks=null,dualCamRunning=false;
 let dualContactState={p1:Object.create(null),p2:Object.create(null)};
 function finiteLandmarks(lm){
@@ -694,7 +712,7 @@ function processPose(landmarks){
     playerReadyForCombat=false;
     player.isGuarding=false;
     prevWristL=null;prevWristR=null;prevAnkleL=null;prevAnkleR=null;
-    if(gameState==='PLAYING'&&!roundLocked)setCombatPhase('TRACKING','TRACKING LOST — STEP INTO FRAME OR USE MANUAL','text-amber-300');
+    if(gameState==='PLAYING'&&!roundLocked)setCombatPhase('TRACKING',trackingProfile==='SIDE'?'SIDE TRACKING LOST — TURN PROFILE, KEEP HANDS + FEET VISIBLE':'TRACKING LOST — STEP INTO FRAME OR USE MANUAL','text-amber-300');
     return;
   }
   const smoothed=smoother.filter(landmarks);
@@ -720,6 +738,9 @@ function processPose(landmarks){
   prevWristL=wrists[0];prevWristR=wrists[1];prevAnkleL=feet[0];prevAnkleR=feet[1];
   document.getElementById('speedMetric').innerText=Math.max(handVelocity,footVelocity).toFixed(3);
   const guardPose=wrists[0].y<shoulderL.y-0.08&&wrists[1].y<shoulderR.y-0.08;
+  if(trackingProfile==='SIDE'&&Math.abs(shoulderL.x-shoulderR.x)<0.045){
+    setCombatPhase('TRACKING','SIDE PROFILE OK — KEEP SHOULDERS UNOBSTRUCTED','text-cyan-300');
+  }
   if(guardPose&&now-player.lastAttackTime>120){
     player.isGuarding=true;player.stance='GUARD';player.isCharging=false;player.isCrouching=false;
     setCombatPhase('GUARD','GUARD — HOLD YOUR GROUND','text-cyan-300');
@@ -1240,17 +1261,33 @@ function toggleSplitScreen(){
 
 /* ============================= CAMERA / MEDIAPIPE ============================= */
 let cameraInstance=null,poseInstance=null;
+function applyCameraPreviewState(){
+  const panel=document.getElementById('cameraFeedPanel');
+  const desktopBtn=document.getElementById('cameraVisibilityBtn');
+  const mobileBtn=document.getElementById('mobileCameraVisibilityBtn');
+  const desktopLabel=document.getElementById('cameraVisibilityLabel');
+  const mobileLabel=document.getElementById('mobileCameraVisibilityLabel');
+  const visible=cameraFeedVisible&&!!cameraStream;
+  panel?.classList.toggle('opacity-0',!visible);
+  panel?.classList.toggle('pointer-events-none',!visible);
+  [desktopBtn,mobileBtn].forEach(btn=>btn?.setAttribute('aria-pressed',String(!cameraFeedVisible)));
+  if(desktopLabel)desktopLabel.textContent=cameraFeedVisible?'HIDE CAMERA':'SHOW CAMERA';
+  if(mobileLabel)mobileLabel.textContent=cameraFeedVisible?'HIDE CAMERA':'SHOW CAMERA';
+  desktopBtn?.classList.toggle('border-cyan-400',!cameraFeedVisible);
+  mobileBtn?.classList.toggle('border-cyan-400',!cameraFeedVisible);
+}
 function stopCameraStream(){
   poseLoopRunning=false;
   if(cameraStream){cameraStream.getTracks().forEach(track=>track.stop());cameraStream=null;}
   const video=document.getElementById('webcamInput');
   if(video)video.srcObject=null;
-  const panel=document.getElementById('cameraFeedPanel');
-  panel?.classList.add('opacity-0','pointer-events-none');
+  applyCameraPreviewState();
   poseInstance?.close?.();
   poseInstance=null;
   dualContactState={p1:Object.create(null),p2:Object.create(null)};
   p2LiveLandmarks=null;
+  livePoseLandmarks=null;
+  trackingLossFrames=0;
   cameraInstance=null;
 }
 function syncPreferenceControls(){
@@ -1258,10 +1295,32 @@ function syncPreferenceControls(){
   const mobileFacing=document.getElementById('mobileCameraFacingSelect');
   const view=document.getElementById('cameraViewSelect');
   const mobileView=document.getElementById('mobileCameraViewSelect');
+  const profile=document.getElementById('trackingProfileSelect');
+  const mobileProfile=document.getElementById('mobileTrackingProfileSelect');
   if(facing)facing.value=cameraFacingMode;
   if(mobileFacing)mobileFacing.value=cameraFacingMode;
   if(view)view.value=cameraView;
   if(mobileView)mobileView.value=cameraView;
+  if(profile)profile.value=trackingProfile;
+  if(mobileProfile)mobileProfile.value=trackingProfile;
+  applyCameraPreviewState();
+}
+function trackingGuidance(){
+  return trackingProfile==='SIDE'
+    ? 'SIDE-FACING READY — TURN 70°–90°, KEEP FULL BODY IN FRAME'
+    : `${cameraFacingMode==='environment'?'BACK':'FRONT'} CAMERA READY — FACE THE LENS`;
+}
+function changeTrackingProfile(profile){
+  trackingProfile=profile==='SIDE'?'SIDE':'FRONT';
+  localStorage.setItem('amf-tracking-profile',trackingProfile);
+  syncPreferenceControls();
+  if(cameraStream)updateGestureStatus(trackingGuidance(),'text-emerald-400');
+}
+function toggleCameraVisibility(){
+  cameraFeedVisible=!cameraFeedVisible;
+  localStorage.setItem('amf-camera-preview',cameraFeedVisible?'visible':'hidden');
+  applyCameraPreviewState();
+  if(cameraStream)updateGestureStatus(cameraFeedVisible?'CAMERA PREVIEW ON — TRACKING ACTIVE':'PREVIEW HIDDEN — TRACKING ACTIVE','text-cyan-300');
 }
 function toggleDebugPoseOverlay(){
   debugPoseOverlay=!debugPoseOverlay;
@@ -1285,6 +1344,7 @@ function changeCameraView(view){
   localStorage.setItem('amf-camera-view',cameraView);
   syncPreferenceControls();
   updateMainCameraView(true);
+  if(cameraStream)updateGestureStatus(`${cameraView} ARENA VIEW — ${trackingProfile==='SIDE'?'SIDE-FACING':'FACING LENS'} TRACKING`,'text-amber-300');
 }
 function updateMainCameraView(force=false){
   if(!camera)return;
@@ -1335,9 +1395,9 @@ async function initCamera(){
     };
     cameraInstance={stop:stopCameraStream};
     sendFrame();
-    document.getElementById('cameraFeedPanel')?.classList.remove('opacity-0','pointer-events-none');
     playerReadyForCombat=true;
-    updateGestureStatus(`${cameraFacingMode==='environment'?'BACK':'FRONT'} CAMERA READY - STAND IN VIEW`,'text-emerald-400');
+    applyCameraPreviewState();
+    updateGestureStatus(trackingGuidance(),'text-emerald-400');
   }catch(error){
     console.error('Camera tracking failed to start',error);
     stopCameraStream();
@@ -1373,8 +1433,8 @@ async function initDualCamera(){
       runningMode:'VIDEO',numPoses:2
     });
     dualCamRunning=true;
-    document.getElementById('cameraFeedPanel')?.classList.remove('opacity-0','pointer-events-none');
-    updateGestureStatus('STAND SIDE BY SIDE IN FRAME','text-emerald-400');
+    applyCameraPreviewState();
+    updateGestureStatus('TWO FIGHTERS — KEEP BOTH FULL BODIES IN FRAME','text-emerald-400');
     dualCamLoop(videoElement);
   }catch(err){
     console.error('Dual-camera tracking failed to start',err);
