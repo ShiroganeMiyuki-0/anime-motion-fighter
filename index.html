@@ -69,7 +69,7 @@ ANIME MOTION <span class="text-[10px] text-amber-400 border border-amber-500/40 
 <div class="hidden lg:flex items-center space-x-6">
   <div class="flex items-center space-x-2 bg-slate-800/80 px-3 py-1 rounded-lg border border-slate-700 text-xs">
 <i class="fa-solid fa-camera-rotate text-cyan-400"></i>
-<span class="text-slate-400 font-orbitron">CAMERA:</span>
+<span class="text-slate-400 font-orbitron">CAPTURE:</span>
 <select id="cameraFacingSelect" onchange="changeCameraFacing(this.value)" class="bg-slate-900 text-cyan-300 border border-slate-700 rounded px-1.5 py-0.5 focus:outline-none text-xs font-bold" aria-label="Camera direction">
 <option value="user">FRONT</option>
 <option value="environment">BACK</option>
@@ -77,7 +77,7 @@ ANIME MOTION <span class="text-[10px] text-amber-400 border border-amber-500/40 
 </div>
   <div class="flex items-center space-x-2 bg-slate-800/80 px-3 py-1 rounded-lg border border-slate-700 text-xs">
 <i class="fa-solid fa-video text-amber-400"></i>
-<span class="text-slate-400 font-orbitron">VIEW:</span>
+<span class="text-slate-400 font-orbitron">ARENA:</span>
 <select id="cameraViewSelect" onchange="changeCameraView(this.value)" class="bg-slate-900 text-amber-300 border border-slate-700 rounded px-1.5 py-0.5 focus:outline-none text-xs font-bold" aria-label="Scene view">
 <option value="FRONT">FRONT</option>
 <option value="SIDE">SIDE</option>
@@ -187,7 +187,7 @@ ANIME MOTION <span class="text-[10px] text-amber-400 border border-amber-500/40 
 
 <video id="webcamInput" class="hidden" playsinline></video>
 
-<div id="cameraFeedPanel" class="absolute bottom-3 left-3 w-[min(42vw,420px)] h-[min(30vw,280px)] min-w-[220px] min-h-[150px] bg-slate-900/90 rounded-xl overflow-hidden border border-slate-700 shadow-2xl z-20 backdrop-blur">
+<div id="cameraFeedPanel" class="absolute bottom-3 left-3 w-[min(30vw,300px)] h-[min(22vw,210px)] min-w-[180px] min-h-[120px] bg-slate-900/90 rounded-xl overflow-hidden border border-slate-700 shadow-2xl z-20 backdrop-blur opacity-0 pointer-events-none transition-opacity duration-300">
 <canvas id="pipCanvas" class="w-full h-full object-cover mirror"></canvas>
 <div class="absolute top-1 left-1.5 text-[9px] font-orbitron text-cyan-300 bg-slate-950/80 px-1.5 py-0.5 rounded border border-cyan-500/30"><i class="fa-solid fa-video text-cyan-400 mr-1"></i>LIVE CAMERA</div>
 <button onclick="toggleDebugPoseOverlay()" class="absolute top-1 right-1.5 text-[9px] font-orbitron text-slate-300 bg-slate-950/80 px-1.5 py-0.5 rounded border border-slate-600 hover:border-amber-400" title="Toggle optional pose debug overlay">DEBUG</button>
@@ -216,7 +216,7 @@ ANIME MOTION <span class="text-[10px] text-amber-400 border border-amber-500/40 
 <div id="gameOverlay" class="absolute inset-0 bg-slate-950/95 backdrop-blur-md flex items-center justify-center z-30 flex-col p-6 text-center">
 <div class="relative mb-3"><i class="fa-solid fa-atom text-6xl text-cyan-400 relative z-10 drop-shadow-[0_0_20px_rgba(56,189,248,0.9)] hart-pulse"></i></div>
 <h2 id="overlayTitle" class="font-orbitron text-3xl sm:text-5xl font-black text-slate-100 mb-2 tracking-wide">ANIME MOTION BATTLE <span class="text-amber-400">3D</span></h2>
-<p id="overlayDesc" class="text-slate-300 max-w-lg mb-4 text-sm leading-relaxed">Welcome to the Guild Arena. Choose a battle mode, pick your fighter, then enter a short match. You can use hand/foot tracking, keyboard controls, or two-person camera play.</p>
+<p id="overlayDesc" class="text-slate-300 max-w-lg mb-4 text-sm leading-relaxed">Step into a short contact duel. Learn one motion, land a clean hit, and read the response. Camera tracking is the main controller; manual controls and two-person play remain available when you want them.</p>
 <div class="onboarding-tips" aria-label="Quick start tips">
   <div class="onboarding-tip"><strong>CAPTURE</strong>Camera selects FRONT or BACK device direction.</div>
   <div class="onboarding-tip"><strong>ARENA</strong>View selects FRONT, SIDE, or REAR perspective.</div>
@@ -347,7 +347,7 @@ let selectedGameMode='1P';
 let selectedP1Char=CHARACTERS.GONE;
 let selectedP2Char=CHARACTERS.RAONE;
 let scene,camera,cameraP1,cameraP2,renderer,toonGradientMap;
-let splitScreenOn=true;
+let splitScreenOn=localStorage.getItem('amf-split-screen')==='true';
 let cameraView=localStorage.getItem('amf-camera-view')||'FRONT';
 let cameraFacingMode=localStorage.getItem('amf-camera-facing')||'user';
 let cameraStream=null;
@@ -360,6 +360,8 @@ const fxCanvas=document.getElementById('fxCanvas'),fxCtx=fxCanvas.getContext('2d
 const pipCanvas=document.getElementById('pipCanvas'),pipCtx=pipCanvas.getContext('2d');
 let gameLevel=1,gameState='START',floatingTexts=[],combo=0,comboTimer=null;
 let sensitivityThreshold=0.055;
+let combatPhase='READY',combatPhaseUntil=0;
+let playerReadyForCombat=false;
 let currentRound=1,p1RoundWins=0,p2RoundWins=0,roundsToWin=2,roundLocked=false;
 const THREAT_TIERS=['MINION BOT','ELITE GUARD','SHADOW ACE','OVERLORD PRIME','APEX ANNIHILATOR'];
 function tierName(lvl){return THREAT_TIERS[Math.min(lvl-1,THREAT_TIERS.length-1)];}
@@ -423,7 +425,7 @@ function init3DWorld(){
   scene=new THREE.Scene();
   scene.fog=new THREE.FogExp2(0x020617,0.035);
   camera=new THREE.PerspectiveCamera(42,width/height,0.1,100);
-  camera.position.set(0,2.6,10);
+  camera.position.set(0,2.8,12);
   camera.lookAt(0,1.25,0);
   const halfAspect=(width/2)/height;
   cameraP1=new THREE.PerspectiveCamera(58,halfAspect,0.1,100);
@@ -688,10 +690,12 @@ function processPose(landmarks){
   if(!finiteLandmarks(landmarks)||gameState!=='PLAYING'||roundLocked){
     livePoseLandmarks=null;
     prevWristL=null;prevWristR=null;prevAnkleL=null;prevAnkleR=null;
+    if(gameState==='PLAYING'&&!roundLocked)setCombatPhase('TRACKING','STEP INTO FRAME','text-amber-300');
     return;
   }
   const smoothed=smoother.filter(landmarks);
   livePoseLandmarks=smoothed;
+  playerReadyForCombat=true;
   const wrists=[smoothed[15],smoothed[16]],feet=[smoothed[27],smoothed[28]];
   const now=performance.now();
   let handVelocity=0,footVelocity=0;
@@ -701,16 +705,20 @@ function processPose(landmarks){
   if(prevAnkleR)footVelocity=Math.max(footVelocity,ptDist(feet[1],prevAnkleR));
   prevWristL=wrists[0];prevWristR=wrists[1];prevAnkleL=feet[0];prevAnkleR=feet[1];
   document.getElementById('speedMetric').innerText=Math.max(handVelocity,footVelocity).toFixed(3);
-  if(p1PhysicalHitCooldown>0){p1PhysicalHitCooldown--;return;}
+  if(p1PhysicalHitCooldown>0){p1PhysicalHitCooldown--;setCombatPhase('RECOVERY','RESET YOUR STANCE','text-slate-300');return;}
   if(footVelocity>sensitivityThreshold*0.9&&now-player.lastAttackTime>360){
     player.lastAttackTime=now;player.stance='KICK';player.isGuarding=false;player.isCrouching=false;player.isCharging=false;
+    setCombatPhase('STRIKE','KICK — DRIVE FORWARD','text-amber-300');
     check3DSpatialCollision('FOOT',footVelocity);
   }else if(handVelocity>sensitivityThreshold&&now-player.lastAttackTime>300){
     player.lastAttackTime=now;player.stance='PUNCH';player.isGuarding=false;player.isCrouching=false;player.isCharging=false;
+    setCombatPhase('STRIKE','HAND — DRIVE FORWARD','text-amber-300');
     check3DSpatialCollision('HAND',handVelocity);
+  }else if(performance.now()<combatPhaseUntil){
+    player.stance='READY';
   }else{
     player.stance='READY';player.isGuarding=false;player.isCrouching=false;player.isCharging=false;
-    updateGestureStatus(liveVisible?'TRACKING HANDS + FEET':'STAND IN VIEW','text-emerald-400');
+    setCombatPhase('READY','READY — MOVE TO STRIKE','text-emerald-400');
   }
 }
 
@@ -752,7 +760,7 @@ function checkDualCamCollisions(dt){
           const midX=(player.x+ai.x)/2;
           sound.playBlock();create3DHitSparks(midX,1.5,0,0x93c5fd,10);
           addFloatingText('BLOCK',window.innerWidth*0.5,window.innerHeight*0.4,'#38bdf8');
-          updateGestureStatus('BLOCK — LIMBS CONTACT','text-cyan-400');
+          setCombatPhase('BLOCK','BLOCK — LIMBS CONTACT','text-cyan-400');
           triggerHitStop(2);
         }
       }
@@ -788,6 +796,7 @@ function landDualCamHit(fromP1,weapon){
   const points=weapon==='FOOT'?2:1;
   const damage=weapon==='FOOT'?16:10;
   if(attackerIsP1)playerScore+=points;else aiScore+=points;
+  setCombatPhase('CONTACT',`CONTACT — ${weapon} HIT`,'text-amber-300');
   sound.playHit();
   target.hp=Math.max(0,target.hp-damage);
   target.hitFlash=1;applyKnockback(target,attackerIsP1,weapon==='FOOT'?0.24:0.14);
@@ -807,10 +816,11 @@ function check3DSpatialCollision(type,velocity){
   if(attackPos.distanceTo(body)<2.6){
     p1PhysicalHitCooldown=18;
     playerScore+=type==='FOOT'?2:1;
+    setCombatPhase('CONTACT',`CONTACT — ${type==='FOOT'?'FOOT':'HAND'} HIT`,'text-amber-300');
     if(type==='HAND')executePlayerPunch(1);else executePlayerKick(1);
     addFloatingText(`+${type==='FOOT'?2:1} HIT`,window.innerWidth*0.7,window.innerHeight*0.4,'#fbbf24');
     updateHud();
-  }else updateGestureStatus(`SWING ${type==='FOOT'?'FOOT':'HAND'} — MISS`,'text-amber-400');
+  }else setCombatPhase('RECOVERY',`MISS — RESET YOUR STANCE`,'text-slate-300');
 }
 
 /* ============================= COMBAT ============================= */
@@ -897,7 +907,7 @@ function executePlayerSuper(attackerNum){
 
 /* ---- Adaptive AI: reads the player's move histogram and counters it ---- */
 function updateAdaptiveAI(delta){
-  if(selectedGameMode!=='1P'||dualCamMode||gameState!=='PLAYING'||roundLocked)return;
+  if(selectedGameMode!=='1P'||dualCamMode||gameState!=='PLAYING'||roundLocked||!playerReadyForCombat)return;
   ai.actionTimer+=delta;
   if(ai.actionTimer<ai.reactionDelay)return;
   ai.actionTimer=0;
@@ -1163,7 +1173,10 @@ function renderSceneView(){
 }
 function toggleSplitScreen(){
   splitScreenOn=!splitScreenOn;
-  document.getElementById('splitToggleBtn').classList.toggle('text-cyan-300',splitScreenOn);
+  localStorage.setItem('amf-split-screen',String(splitScreenOn));
+  const button=document.getElementById('splitToggleBtn');
+  button?.classList.toggle('text-cyan-300',splitScreenOn);
+  button?.setAttribute('aria-pressed',String(splitScreenOn));
 }
 
 /* ============================= CAMERA / MEDIAPIPE ============================= */
@@ -1173,6 +1186,8 @@ function stopCameraStream(){
   if(cameraStream){cameraStream.getTracks().forEach(track=>track.stop());cameraStream=null;}
   const video=document.getElementById('webcamInput');
   if(video)video.srcObject=null;
+  const panel=document.getElementById('cameraFeedPanel');
+  panel?.classList.add('opacity-0','pointer-events-none');
   poseInstance?.close?.();
   poseInstance=null;
   dualContactState={p1:Object.create(null),p2:Object.create(null)};
@@ -1261,6 +1276,8 @@ async function initCamera(){
     };
     cameraInstance={stop:stopCameraStream};
     sendFrame();
+    document.getElementById('cameraFeedPanel')?.classList.remove('opacity-0','pointer-events-none');
+    playerReadyForCombat=true;
     updateGestureStatus(`${cameraFacingMode==='environment'?'BACK':'FRONT'} CAMERA READY - STAND IN VIEW`,'text-emerald-400');
   }catch(error){
     console.error('Camera tracking failed to start',error);
@@ -1297,6 +1314,7 @@ async function initDualCamera(){
       runningMode:'VIDEO',numPoses:2
     });
     dualCamRunning=true;
+    document.getElementById('cameraFeedPanel')?.classList.remove('opacity-0','pointer-events-none');
     updateGestureStatus('STAND SIDE BY SIDE IN FRAME','text-emerald-400');
     dualCamLoop(videoElement);
   }catch(err){
@@ -1362,6 +1380,7 @@ function stopDualCamera(){
 /* ============================= MANUAL CONTROLS ============================= */
 function triggerManualAction(playerNum,action){
   if(gameState!=='PLAYING'||roundLocked)return;
+  if(playerNum===1)playerReadyForCombat=true;
   const targetObj=playerNum===1?player:ai;
   if(action==='PUNCH'){targetObj.stance='PUNCH';executePlayerPunch(playerNum);}
   else if(action==='KICK'){targetObj.stance='KICK';executePlayerKick(playerNum);}
@@ -1401,6 +1420,13 @@ function updateGestureStatus(text,colorClass){
   const el=document.getElementById('gestureStatus');
   el.innerText=text;
   el.className='font-orbitron text-[10px] sm:text-xs font-bold bg-slate-900/95 border border-amber-500/40 px-3 py-1 rounded-full uppercase tracking-wider backdrop-blur shadow-xl '+colorClass;
+}
+function setCombatPhase(phase,text,colorClass){
+  combatPhase=phase;
+  combatPhaseUntil=performance.now()+550;
+  const el=document.getElementById('gestureStatus');
+  if(el)el.dataset.combatPhase=phase;
+  updateGestureStatus(text,colorClass);
 }
 function updateHud(){
   document.getElementById('playerScoreText').innerText=playerScore;
@@ -1480,9 +1506,11 @@ async function startNextRound(){
   rebuildFighters3D();
   updateHud();
   gameState='PLAYING';
+  playerReadyForCombat=false;
   await showBanner(`ROUND ${currentRound}`,900);
   await showBanner('FIGHT!',500);
   roundLocked=false;
+  setCombatPhase('READY','STEP INTO FRAME OR USE MANUAL','text-amber-300');
 }
 function startMatch(){
   currentRound=1;p1RoundWins=0;p2RoundWins=0;playerScore=0;aiScore=0;roundLocked=true;
