@@ -127,6 +127,7 @@ ANIME MOTION <span class="text-[10px] text-amber-400 border border-amber-500/40 
 <button id="startCamBtn" onclick="initCamera()" class="px-3.5 py-1.5 bg-gradient-to-r from-cyan-400 to-blue-600 hover:from-cyan-300 hover:to-blue-500 text-slate-950 font-orbitron font-bold rounded-lg shadow-lg flex items-center space-x-2 transition text-xs sm:text-sm">
 <i class="fa-solid fa-video"></i><span>WEBCAM</span>
 </button>
+<button id="calibrationBtn" onclick="startCalibration()" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-emerald-300 rounded-lg text-xs font-orbitron border border-emerald-500/30 flex items-center space-x-1 transition" title="Check camera framing and tracking before a round"><i class="fa-solid fa-crosshairs"></i><span class="hidden md:inline">CALIBRATE</span></button>
 <button onclick="toggleHelpModal()" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs border border-slate-700">
 <i class="fa-solid fa-circle-question"></i>
 </button>
@@ -154,6 +155,11 @@ ANIME MOTION <span class="text-[10px] text-amber-400 border border-amber-500/40 
 <div class="absolute top-20 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 pointer-events-none">
 <div id="roundPips" class="flex gap-1.5"></div>
 </div>
+<div id="usabilityTestBanner" class="hidden absolute top-24 right-3 z-30 w-[min(92vw,320px)] rounded-xl border border-emerald-400/40 bg-slate-950/95 p-3 shadow-2xl backdrop-blur" aria-live="polite">
+  <div class="flex items-center justify-between gap-2"><strong class="font-orbitron text-[10px] tracking-widest text-emerald-300">USABILITY TEST MODE</strong><button onclick="downloadUsabilityLog()" class="text-[9px] font-orbitron text-slate-300 border border-slate-700 rounded px-1.5 py-1 hover:border-emerald-400">EXPORT LOG</button></div>
+  <p class="mt-2 text-[10px] leading-relaxed text-slate-300">Do not explain the controls. Ask the tester to choose a stance, calibrate, land one clean contact, and describe what they think happened.</p>
+  <div id="usabilityTestStatus" class="mt-2 text-[9px] uppercase tracking-wider text-emerald-200">Waiting for tester</div>
+</div>
 <div class="absolute bottom-3 right-3 z-20 flex gap-2">
 <button onclick="togglePause()" id="pauseBtn" class="px-3 py-1.5 bg-slate-900/85 hover:bg-slate-800 border border-slate-700 rounded-lg text-xs font-orbitron text-slate-300 backdrop-blur"><i class="fa-solid fa-pause"></i></button>
 <button onclick="toggleMute()" id="muteBtn" class="px-3 py-1.5 bg-slate-900/85 hover:bg-slate-800 border border-slate-700 rounded-lg text-xs font-orbitron text-slate-300 backdrop-blur"><i class="fa-solid fa-volume-high"></i></button>
@@ -178,6 +184,7 @@ ANIME MOTION <span class="text-[10px] text-amber-400 border border-amber-500/40 
 </div>
 <div class="text-center px-1">
 <div id="gestureStatus" class="font-orbitron text-[10px] sm:text-xs font-bold text-amber-300 bg-slate-900/95 border border-amber-500/40 px-3 py-1 rounded-full uppercase tracking-wider backdrop-blur shadow-xl">STAND IN VIEW</div>
+<div id="combatReason" class="hidden max-w-[260px] text-[9px] sm:text-[10px] text-slate-300 bg-slate-950/85 border border-slate-700/70 px-2 py-1 rounded-lg mt-1 leading-tight" aria-live="polite"></div>
 <div id="comboCounter" class="hidden font-orbitron text-xl sm:text-3xl font-black text-cyan-400 mt-1.5 animate-bounce drop-shadow-[0_0_10px_rgba(56,189,248,0.8)]">0 COMBO!</div>
 </div>
 <div class="w-[45%] max-w-xs md:max-w-md bg-slate-900/85 p-2.5 sm:p-3 rounded-xl border border-rose-500/40 backdrop-blur neon-border-red">
@@ -409,6 +416,9 @@ window.addEventListener('pagehide',()=>{
 });
 let livePoseLandmarks=null,liveVisible=false;
 let trackingLossFrames=0;
+let calibrationActive=false,calibrationStartedAt=0,calibrationSamples=[];
+let usabilityTestMode=new URLSearchParams(window.location.search).get('test')==='1';
+let usabilityEvents=[];
 let dualCamMode=false,p2LiveLandmarks=null,dualCamRunning=false;
 let dualContactState={p1:Object.create(null),p2:Object.create(null)};
 function finiteLandmarks(lm){
@@ -707,6 +717,7 @@ function buildFighterRig(charConfig,isEnemy){
 // torso is one target. Gesture complexity is intentionally deferred.
 function processPose(landmarks){
   liveVisible=!!landmarks;
+  updateCalibration(landmarks);
   if(!finiteLandmarks(landmarks)||gameState!=='PLAYING'||roundLocked){
     livePoseLandmarks=null;
     playerReadyForCombat=false;
@@ -1305,6 +1316,76 @@ function syncPreferenceControls(){
   if(mobileProfile)mobileProfile.value=trackingProfile;
   applyCameraPreviewState();
 }
+function recordUsabilityEvent(type,detail={}){
+  if(!usabilityTestMode)return;
+  usabilityEvents.push({at:new Date().toISOString(),type,detail});
+  const status=document.getElementById('usabilityTestStatus');
+  if(status)status.textContent=`Last event: ${type.replaceAll('_',' ')} — ${usabilityEvents.length} recorded`;
+}
+function downloadUsabilityLog(){
+  const payload={product:'Anime Motion Fighter',mode:'camera-usability-test',startedAt:usabilityEvents[0]?.at||new Date().toISOString(),events:usabilityEvents};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);const link=document.createElement('a');
+  link.href=url;link.download=`anime-motion-fighter-usability-${new Date().toISOString().slice(0,10)}.json`;link.click();
+  setTimeout(()=>URL.revokeObjectURL(url),500);
+}
+function initUsabilityTestMode(){
+  const panel=document.getElementById('usabilityTestBanner');
+  if(usabilityTestMode){panel?.classList.remove('hidden');recordUsabilityEvent('TEST_OPENED',{trackingProfile,cameraView});}
+}
+function calibrationMessage(){
+  if(!calibrationSamples.length)return 'Stand where your full body is visible, then hold still for a moment.';
+  const now=performance.now();
+  const seconds=Math.max(0,(now-calibrationStartedAt)/1000);
+  return `CHECKING FRAME — ${Math.min(100,Math.floor(seconds/3.5*100))}%`;
+}
+function finishCalibration(){
+  calibrationActive=false;
+  const btn=document.getElementById('calibrationBtn');
+  if(btn)btn.disabled=false;
+  const samples=calibrationSamples;
+  const enough=samples.length>=18;
+  const centered=samples.filter(s=>s.centered).length/Math.max(1,samples.length)>=0.75;
+  const fullBody=samples.filter(s=>s.fullBody).length/Math.max(1,samples.length)>=0.75;
+  const profileOk=trackingProfile==='SIDE'
+    ? samples.filter(s=>s.shoulderWidth>=0.035).length/Math.max(1,samples.length)>=0.65
+    : samples.filter(s=>s.shoulderWidth>=0.10).length/Math.max(1,samples.length)>=0.65;
+  const pass=enough&&centered&&fullBody&&profileOk;
+  recordUsabilityEvent('CALIBRATION_FINISHED',{passed:pass,samples:samples.length,trackingProfile});
+  if(pass){
+    updateGestureStatus('CAMERA READY — YOU CAN FIGHT','text-emerald-400');
+    setCombatPhase('READY',trackingProfile==='SIDE'?'SIDE PROFILE LOCKED — KEEP MOVING LIMBS CLEAR':'FRAME LOCKED — MOVE ONE LIMB CLEARLY','text-emerald-300');
+  }else{
+    updateGestureStatus('ADJUST POSITION AND TRY AGAIN','text-amber-300');
+    const reason=!enough?'Hold still a little longer.':!fullBody?'Move back so your head and feet fit in frame.':!centered?'Move toward the center of the camera frame.':trackingProfile==='SIDE'?'Turn more clearly into profile while keeping both shoulders visible.':'Face the lens so both shoulders are visible.';
+    showRuntimeError('CAMERA CHECK NEEDS ADJUSTMENT',reason,'TRY CALIBRATION AGAIN');
+  }
+}
+function updateCalibration(landmarks){
+  if(!calibrationActive||!finiteLandmarks(landmarks))return;
+  const now=performance.now();
+  const points=[landmarks[0],landmarks[11],landmarks[12],landmarks[23],landmarks[24],landmarks[27],landmarks[28]];
+  const xs=points.map(p=>p.x),ys=points.map(p=>p.y);
+  const torsoCenter=(landmarks[11].x+landmarks[12].x+landmarks[23].x+landmarks[24].x)/4;
+  calibrationSamples.push({
+    centered:torsoCenter>0.22&&torsoCenter<0.78,
+    fullBody:Math.min(...ys)<0.20&&Math.max(...ys)>0.88,
+    shoulderWidth:Math.abs(landmarks[11].x-landmarks[12].x)
+  });
+  if(calibrationSamples.length%6===0)updateGestureStatus(calibrationMessage(),'text-cyan-300');
+  if(now-calibrationStartedAt>=3500)finishCalibration();
+}
+async function startCalibration(){
+  if(calibrationActive)return;
+  calibrationActive=true;calibrationStartedAt=performance.now();calibrationSamples=[];
+  recordUsabilityEvent('CALIBRATION_STARTED',{trackingProfile,cameraFacingMode,cameraView});
+  const btn=document.getElementById('calibrationBtn');
+  if(btn)btn.disabled=true;
+  updateGestureStatus('STARTING CAMERA CHECK...','text-amber-300');
+  if(!cameraStream)await initCamera();
+  if(!cameraStream){calibrationActive=false;if(btn)btn.disabled=false;return;}
+  updateGestureStatus('HOLD STILL — FULL BODY IN FRAME','text-amber-300');
+}
 function trackingGuidance(){
   return trackingProfile==='SIDE'
     ? 'SIDE-FACING READY — TURN 70°–90°, KEEP FULL BODY IN FRAME'
@@ -1545,6 +1626,20 @@ function setCombatPhase(phase,text,colorClass){
   combatPhaseUntil=performance.now()+550;
   const el=document.getElementById('gestureStatus');
   if(el)el.dataset.combatPhase=phase;
+  recordUsabilityEvent('COMBAT_PHASE',{phase,text});
+  const reasonMap={
+    READY:'Move one clear hand or foot forward from your stance.',
+    'WIND-UP':'Motion detected, but the limb has not crossed the strike gate yet.',
+    STRIKE:'Intent gate crossed. The arena is checking real contact now.',
+    CONTACT:'Your limb reached the target and the contact was counted.',
+    MISS:'The movement did not reach a valid target. Reset and try again.',
+    BLOCK:'The attacking limb met a defending limb before the target.',
+    GUARD:'Both hands are above the shoulders, so your guard is active.',
+    RECOVERY:'That exchange is settling. Return to a neutral stance.',
+    TRACKING:'Combat pauses when the game cannot trust the body landmarks.'
+  };
+  const reason=document.getElementById('combatReason');
+  if(reason){reason.textContent=reasonMap[phase]||'The arena is reading your next clear action.';reason.classList.remove('hidden');}
   updateGestureStatus(text,colorClass);
 }
 function updateHud(){
@@ -1696,6 +1791,7 @@ function toggleHelpModal(){document.getElementById('helpModal').classList.toggle
 window.addEventListener('DOMContentLoaded',()=>{
   try{
     syncPreferenceControls();
+    initUsabilityTestMode();
     init3DWorld();
     renderCharGrid('p1CharGrid',selectP1Char,selectedP1Char);
     renderCharGrid('p2CharGrid',selectP2Char,selectedP2Char);

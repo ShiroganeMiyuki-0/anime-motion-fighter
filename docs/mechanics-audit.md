@@ -60,3 +60,12 @@ Tracking-loss feedback now refers to the selected orientation. A side-facing pla
 ## Camera contract verification
 
 The local browser rendered the new independent controls for capture direction, arena view, tracking profile, and preview visibility. Selecting `SIDE-FACING` updated the persisted preference, and toggling the visibility control changed the label to `SHOW CAMERA` while leaving the tracking contract intact. Static JavaScript checks and the existing game verification script passed after the change.
+
+
+## Calibration and explainable feedback
+
+The Fighter now has an explicit **Calibrate** action. It checks that the player is centered, that the full body is visible, and that the selected front-facing or side-facing posture is plausible before the player relies on camera combat. A failed check explains the adjustment in human terms, such as moving back, centering the body, or turning more clearly into profile.
+
+Combat feedback now includes a short explanation beneath the main phase label. The player can see whether the game is waiting for a clear extension, checking a valid intent gate, counting contact, recognizing a block, or pausing because tracking is not trustworthy.
+
+Appending `?test=1` enables a local-only usability panel. It gives a moderator a neutral instruction, records high-level in-session events such as calibration start and combat phases, and exports a JSON observation log locally. It does not upload camera frames or telemetry.
