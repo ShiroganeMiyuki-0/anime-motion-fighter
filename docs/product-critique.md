@@ -22,3 +22,7 @@ The opening now communicates a player goal before discussing implementation: fin
 ## First-round training verification
 
 A fresh first-round browser run reached the existing readiness state, then Manual Controls allowed a clear P1 punch. The live HUD changed to “TRAINING — LAND ONE CLEAN CONTACT,” displayed a visible 1 COMBO response, showed impact particles and “-12 HP,” and left the opponent’s health readable. This confirms the training beat is not merely instructional copy: it creates a safe, actionable first success before the adaptive opponent becomes active.
+
+## Original inspiration pass verification
+
+The Quest Post page visibly exposes the original everyday templates “Quick Favor,” “Community Setup,” and “Study Buddy” alongside the existing professional templates. The latest Fighter opening still presents the original arena identity, camera direction choices, side/rear views, manual fallback, and a concise first-round objective after adding defense momentum.
