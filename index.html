@@ -977,7 +977,7 @@ function updateAdaptiveAI(delta){
   const aggro=Math.min(0.25,(gameLevel-1)*0.05); // higher tiers counter harder & bluff less
 
   if(ai.ki>=100&&rand<0.8+aggro){queueAIAction('SUPER');return;}
-  if(p1Stance==='PUNCH'&&rand<0.55+aggro){ai.stance='GUARD';ai.isGuarding=true;return;}
+  if(p1Stance==='PUNCH'&&rand<0.55+aggro){ai.stance='GUARD';ai.isGuarding=true;setCombatPhase('AI_GUARD','OPPONENT GUARDS — RESET OR COUNTER','text-rose-200');setTimeout(()=>{if(ai.stance==='GUARD'){ai.isGuarding=false;ai.stance='IDLE';}},450);return;}
   if(p1Stance==='CHARGING'&&rand<0.7+aggro){queueAIAction('PUNCH');return;}
   // counter the player's favorite move
   if(favMove==='KICK'&&rand<0.35+aggro){ai.stance='CROUCH';ai.isCrouching=true;setTimeout(()=>ai.isCrouching=false,500);return;}

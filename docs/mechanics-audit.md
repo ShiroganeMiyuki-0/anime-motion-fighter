@@ -39,3 +39,7 @@ A successful Guard now opens a short counter window. A follow-up punch or kick d
 ## Counter-window browser verification
 
 The Fighter opening still presents a concise first-round objective, the original sci-fi arena identity, front/back capture choices, front/side/rear views, manual fallback, split POV, and webcam access after the counter-window change. The new decision remains a combat-layer change rather than a new technical panel.
+
+## AI guard recovery
+
+When the adaptive opponent reacts to a player punch with Guard, it now communicates “OPPONENT GUARDS — RESET OR COUNTER” and exits that defensive stance after a bounded recovery window. This prevents a reactive guard from becoming an indefinite passive state.
