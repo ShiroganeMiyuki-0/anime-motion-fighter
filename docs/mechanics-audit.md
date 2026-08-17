@@ -27,3 +27,7 @@ After entering a fresh arena, both fighters remained at full health and the cent
 ## Defensive response
 
 The camera duel now recognizes a simple guard posture: both hands raised above the shoulders holds the player in GUARD and displays “GUARD — HOLD YOUR GROUND.” This gives the player a clear answer to the AI telegraph without adding a complicated evade system. The posture is intentionally conservative so ordinary arm movement does not silently become a shield.
+
+## Full basic blocks
+
+Guard now fully negates basic punch and kick damage instead of reducing it to a partial chip. A guarded super is also stopped. This matches the intended contact rule more closely: when the defender establishes a block, the attacker receives a readable BLOCKED response and the defender keeps the exchange.

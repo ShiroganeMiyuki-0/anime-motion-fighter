@@ -865,10 +865,10 @@ function executePlayerPunch(attackerNum){
     updateHud();checkWinLoss();return;
   }
   if(target.isGuarding){
-    damage*=0.2;sound.playBlock();
+    damage=0;sound.playBlock();
     create3DHitSparks(target.x,1.7,0,0x93c5fd,8);
-    addFloatingText('SHIELDED',window.innerWidth*(isP1?0.7:0.3),window.innerHeight*0.4,'#38bdf8');
-    triggerHitStop(2);
+    addFloatingText('BLOCKED',window.innerWidth*(isP1?0.7:0.3),window.innerHeight*0.4,'#38bdf8');
+    triggerHitStop(3);
   }else{
     sound.playHit();target.hp=Math.max(0,target.hp-damage);
     create3DHitSparks(target.x,1.7,0,attackerChar.colorHex,14);
@@ -889,10 +889,10 @@ function executePlayerKick(attackerNum){
     updateHud();checkWinLoss();return;
   }
   if(target.isGuarding){
-    damage*=0.3;sound.playBlock();
+    damage=0;sound.playBlock();
     create3DHitSparks(target.x,1.7,0,0x93c5fd,10);
-    addFloatingText('PARTIAL BLOCK',window.innerWidth*(isP1?0.7:0.3),window.innerHeight*0.4,'#38bdf8');
-    triggerHitStop(3);
+    addFloatingText('BLOCKED',window.innerWidth*(isP1?0.7:0.3),window.innerHeight*0.4,'#38bdf8');
+    triggerHitStop(4);
   }else{
     sound.playHit();target.hp=Math.max(0,target.hp-damage);
     create3DHitSparks(target.x,1.7,0,attackerChar.colorHex,20);
@@ -915,8 +915,8 @@ function executePlayerSuper(attackerNum){
     addFloatingText('DUCKED SUPER BLAST!',window.innerWidth*(isP1?0.7:0.3),window.innerHeight*0.4,'#a855f7');
     damage=0;
   }else if(target.isGuarding){
-    damage*=0.3;
-    addFloatingText('PARRIED SUPER!',window.innerWidth*(isP1?0.7:0.3),window.innerHeight*0.4,'#38bdf8');
+    damage=0;sound.playBlock();
+    addFloatingText('SUPER BLOCKED!',window.innerWidth*(isP1?0.7:0.3),window.innerHeight*0.4,'#38bdf8');
   }else{
     addFloatingText(`-${damage} ${attackerChar.superName}!`,window.innerWidth*(isP1?0.7:0.3),window.innerHeight*0.4,'#f43f5e');
     target.hitFlash=1;applyKnockback(target,isP1,0.5);
