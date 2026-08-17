@@ -23,3 +23,7 @@ The new opening and fighter-selection flow load without visible runtime failure.
 ## Arena verification
 
 After entering a fresh arena, both fighters remained at full health and the center state read “STEP INTO FRAME OR USE MANUAL,” confirming the readiness gate still works. The shared arena framing kept both fighters readable. Opening Manual Controls exposed the existing P1/P2 action controls without removing camera or view preferences, confirming the fallback path remains available while camera mechanics are tightened.
+
+## Defensive response
+
+The camera duel now recognizes a simple guard posture: both hands raised above the shoulders holds the player in GUARD and displays “GUARD — HOLD YOUR GROUND.” This gives the player a clear answer to the AI telegraph without adding a complicated evade system. The posture is intentionally conservative so ordinary arm movement does not silently become a shield.

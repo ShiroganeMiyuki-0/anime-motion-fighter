@@ -717,6 +717,12 @@ function processPose(landmarks){
   const footExtended=footReach>0.30;
   prevWristL=wrists[0];prevWristR=wrists[1];prevAnkleL=feet[0];prevAnkleR=feet[1];
   document.getElementById('speedMetric').innerText=Math.max(handVelocity,footVelocity).toFixed(3);
+  const guardPose=wrists[0].y<shoulderL.y-0.08&&wrists[1].y<shoulderR.y-0.08;
+  if(guardPose&&now-player.lastAttackTime>120){
+    player.isGuarding=true;player.stance='GUARD';player.isCharging=false;player.isCrouching=false;
+    setCombatPhase('GUARD','GUARD — HOLD YOUR GROUND','text-cyan-300');
+    return;
+  }
   if(p1PhysicalHitCooldown>0){p1PhysicalHitCooldown--;setCombatPhase('RECOVERY','RESET YOUR STANCE','text-slate-300');return;}
   if(footReach>0.24&&!footExtended&&footExtending){setCombatPhase('WIND-UP','EXTEND YOUR KICK','text-amber-200');}
   else if(handReach>0.17&&!handExtended&&handExtending){setCombatPhase('WIND-UP','EXTEND YOUR HAND','text-amber-200');}
