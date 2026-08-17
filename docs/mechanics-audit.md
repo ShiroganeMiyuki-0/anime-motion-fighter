@@ -31,3 +31,11 @@ The camera duel now recognizes a simple guard posture: both hands raised above t
 ## Full basic blocks
 
 Guard now fully negates basic punch and kick damage instead of reducing it to a partial chip. A guarded super is also stopped. This matches the intended contact rule more closely: when the defender establishes a block, the attacker receives a readable BLOCKED response and the defender keeps the exchange.
+
+## Defense creates a counter choice
+
+A successful Guard now opens a short counter window. A follow-up punch or kick during that window becomes a stronger counter contact, with explicit feedback such as “COUNTER CONTACT” or “COUNTER KICK.” The window resets at each round boundary, so defense creates a deliberate next decision without adding a persistent hidden advantage.
+
+## Counter-window browser verification
+
+The Fighter opening still presents a concise first-round objective, the original sci-fi arena identity, front/back capture choices, front/side/rear views, manual fallback, split POV, and webcam access after the counter-window change. The new decision remains a combat-layer change rather than a new technical panel.

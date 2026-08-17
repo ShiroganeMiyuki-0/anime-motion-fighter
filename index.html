@@ -862,6 +862,8 @@ function executePlayerPunch(attackerNum){
   const attackerChar=isP1?selectedP1Char:selectedP2Char;
   if(isP1)incrementCombo();
   let damage=12;
+  const counterReady=isP1&&player.counterUntil>performance.now();
+  if(counterReady){damage=18;player.counterUntil=0;setCombatPhase('COUNTER','COUNTER CONTACT · +18','text-amber-300');}
   if(target===player&&Math.abs(player.dodgeZ)>0.75&&!target.isGuarding){
     addFloatingText('DODGED!',window.innerWidth*0.3,window.innerHeight*0.4,'#a3e635');
     updateHud();checkWinLoss();return;
@@ -870,7 +872,7 @@ function executePlayerPunch(attackerNum){
     damage=0;target.ki=Math.min(100,target.ki+8);sound.playBlock();
     create3DHitSparks(target.x,1.7,0,0x93c5fd,8);
     addFloatingText('BLOCKED · +8 KI',window.innerWidth*(isP1?0.7:0.3),window.innerHeight*0.4,'#38bdf8');
-    if(target===player)setCombatPhase('BLOCK','BLOCKED — MOMENTUM +8','text-cyan-300');
+    if(target===player){player.counterUntil=performance.now()+700;setCombatPhase('BLOCK','BLOCKED — COUNTER WINDOW','text-cyan-300');}
     triggerHitStop(3);
   }else{
     sound.playHit();target.hp=Math.max(0,target.hp-damage);
@@ -887,6 +889,8 @@ function executePlayerKick(attackerNum){
   const attackerChar=isP1?selectedP1Char:selectedP2Char;
   if(isP1)incrementCombo();
   let damage=22;
+  const counterReady=isP1&&player.counterUntil>performance.now();
+  if(counterReady){damage=30;player.counterUntil=0;setCombatPhase('COUNTER','COUNTER KICK · +30','text-amber-300');}
   if(target===player&&Math.abs(player.dodgeZ)>0.75&&!target.isGuarding){
     addFloatingText('DODGED!',window.innerWidth*0.3,window.innerHeight*0.4,'#a3e635');
     updateHud();checkWinLoss();return;
@@ -895,7 +899,7 @@ function executePlayerKick(attackerNum){
     damage=0;target.ki=Math.min(100,target.ki+10);sound.playBlock();
     create3DHitSparks(target.x,1.7,0,0x93c5fd,10);
     addFloatingText('BLOCKED · +10 KI',window.innerWidth*(isP1?0.7:0.3),window.innerHeight*0.4,'#38bdf8');
-    if(target===player)setCombatPhase('BLOCK','BLOCKED — MOMENTUM +10','text-cyan-300');
+    if(target===player){player.counterUntil=performance.now()+700;setCombatPhase('BLOCK','BLOCKED — COUNTER WINDOW','text-cyan-300');}
     triggerHitStop(4);
   }else{
     sound.playHit();target.hp=Math.max(0,target.hp-damage);
@@ -921,7 +925,7 @@ function executePlayerSuper(attackerNum){
   }else if(target.isGuarding){
     damage=0;target.ki=Math.min(100,target.ki+15);sound.playBlock();
     addFloatingText('SUPER BLOCKED · +15 KI',window.innerWidth*(isP1?0.7:0.3),window.innerHeight*0.4,'#38bdf8');
-    if(target===player)setCombatPhase('BLOCK','SUPER BLOCKED — MOMENTUM +15','text-cyan-300');
+    if(target===player){player.counterUntil=performance.now()+900;setCombatPhase('BLOCK','SUPER BLOCKED — COUNTER WINDOW','text-cyan-300');}
   }else{
     addFloatingText(`-${damage} ${attackerChar.superName}!`,window.innerWidth*(isP1?0.7:0.3),window.innerHeight*0.4,'#f43f5e');
     target.hitFlash=1;applyKnockback(target,isP1,0.5);
@@ -1553,7 +1557,7 @@ function endGame(playerWon){
 }
 function closeOverlay(){document.getElementById('gameOverlay').classList.add('hidden');}
 async function startNextRound(){
-  player.hp=player.maxHp;player.ki=0;player.stance='IDLE';player.knockback=0;player.hitFlash=0;player.homeX=-3.2;player.x=-3.2;player.dodgeZ=0;player.dodgeBaseline=null;
+  player.hp=player.maxHp;player.ki=0;player.stance='IDLE';player.knockback=0;player.hitFlash=0;player.homeX=-3.2;player.x=-3.2;player.dodgeZ=0;player.dodgeBaseline=null;player.counterUntil=0;
   ai.maxHp=100+(gameLevel-1)*15;ai.hp=ai.maxHp;ai.ki=0;ai.stance='IDLE';ai.knockback=0;ai.hitFlash=0;ai.homeX=3.2;ai.x=3.2;
   ai.reactionDelay=Math.max(260,620-(gameLevel-1)*70);
   ai.history={PUNCH:0,KICK:0,GUARD:0,CROUCH:0,CHARGE:0};
