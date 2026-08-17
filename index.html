@@ -381,9 +381,9 @@ window.addEventListener('error',(event)=>console.error('[Anime Motion Fighter] R
 window.addEventListener('unhandledrejection',(event)=>console.error('[Anime Motion Fighter] Unhandled promise rejection:',event.reason));
 window.addEventListener('pagehide',()=>{
   dualCamRunning=false;
-  if(cameraInstance?.stop)cameraInstance.stop();
-  const video=document.getElementById('webcamInput');
-  video?.srcObject?.getTracks?.().forEach(track=>track.stop());
+  stopCameraStream();
+  dualCamLandmarker?.close?.();
+  dualCamLandmarker=null;
   renderer?.dispose?.();
 });
 let livePoseLandmarks=null,liveVisible=false;
@@ -1173,6 +1173,10 @@ function stopCameraStream(){
   if(cameraStream){cameraStream.getTracks().forEach(track=>track.stop());cameraStream=null;}
   const video=document.getElementById('webcamInput');
   if(video)video.srcObject=null;
+  poseInstance?.close?.();
+  poseInstance=null;
+  dualContactState={p1:Object.create(null),p2:Object.create(null)};
+  p2LiveLandmarks=null;
   cameraInstance=null;
 }
 function syncPreferenceControls(){
@@ -1260,6 +1264,7 @@ async function initCamera(){
     updateGestureStatus(`${cameraFacingMode==='environment'?'BACK':'FRONT'} CAMERA READY - STAND IN VIEW`,'text-emerald-400');
   }catch(error){
     console.error('Camera tracking failed to start',error);
+    stopCameraStream();
     updateGestureStatus('CAMERA FAILED - USE MANUAL CONTROLS','text-rose-400');
     showRuntimeError('CAMERA START FAILED','Camera access was blocked or the tracking model could not load. Keyboard controls remain available.');
   }
@@ -1296,6 +1301,9 @@ async function initDualCamera(){
     dualCamLoop(videoElement);
   }catch(err){
     console.error('Dual-camera tracking failed to start',err);
+    stopCameraStream();
+    dualCamLandmarker?.close?.();
+    dualCamLandmarker=null;
     updateGestureStatus('CAM TRACKER FAILED - USE MANUAL CONTROLS','text-rose-400');
     showRuntimeError('DUAL TRACKER FAILED','The camera or dual-person tracking model could not start. Check permissions, then use manual controls if needed.');
     dualCamMode=false;
@@ -1304,7 +1312,14 @@ async function initDualCamera(){
 function dualCamLoop(videoElement){
   if(!dualCamRunning)return;
   if(videoElement.readyState>=2&&dualCamLandmarker){
-    const result=dualCamLandmarker.detectForVideo(videoElement,performance.now());
+    let result;
+    try {
+      result=dualCamLandmarker.detectForVideo(videoElement,performance.now());
+    } catch (error) {
+      console.warn('Dual-pose frame skipped',error);
+      requestAnimationFrame(()=>dualCamLoop(videoElement));
+      return;
+    }
     pipCtx.save();pipCtx.clearRect(0,0,pipCanvas.width,pipCanvas.height);
     pipCtx.drawImage(videoElement,0,0,pipCanvas.width,pipCanvas.height);
     const poses=result.landmarks||[];
@@ -1336,7 +1351,12 @@ function drawSkeleton(lm,color){
 }
 function stopDualCamera(){
   dualCamRunning=false;dualCamMode=false;
+  dualCamLandmarker?.close?.();
+  dualCamLandmarker=null;
   stopCameraStream();
+  livePoseLandmarks=null;
+  p2LiveLandmarks=null;
+  dualContactState={p1:Object.create(null),p2:Object.create(null)};
 }
 
 /* ============================= MANUAL CONTROLS ============================= */
