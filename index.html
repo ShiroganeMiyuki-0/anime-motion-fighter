@@ -360,6 +360,7 @@ let speedLinesActive=false,speedLinesTimer=0;
 const fxCanvas=document.getElementById('fxCanvas'),fxCtx=fxCanvas.getContext('2d');
 const pipCanvas=document.getElementById('pipCanvas'),pipCtx=pipCanvas.getContext('2d');
 let gameLevel=1,gameState='START',floatingTexts=[],combo=0,comboTimer=null;
+let trainingBeat=false,trainingBeatTimer=0;
 let sensitivityThreshold=0.055;
 let combatPhase='READY',combatPhaseUntil=0;
 let playerReadyForCombat=false;
@@ -928,6 +929,16 @@ function queueAIAction(action){
 }
 function updateAdaptiveAI(delta){
   if(selectedGameMode!=='1P'||dualCamMode||gameState!=='PLAYING'||roundLocked||!playerReadyForCombat)return;
+  if(trainingBeat){
+    trainingBeatTimer-=delta;
+    if(playerScore>0||combo>0||trainingBeatTimer<=0){
+      trainingBeat=false;
+      setCombatPhase('READY','OPPONENT IS LIVE','text-emerald-300');
+    }else{
+      if(performance.now()>combatPhaseUntil)setCombatPhase('READY','TRAINING — LAND ONE CLEAN CONTACT','text-amber-300');
+      return;
+    }
+  }
   if(ai.pendingAction){
     ai.telegraphTimer-=delta;
     ai.stance='CHARGING';
@@ -1539,9 +1550,11 @@ async function startNextRound(){
   combo=0;document.getElementById('comboCounter').classList.add('hidden');
   rebuildFighters3D();
   updateHud();
+  trainingBeat=currentRound===1&&p1RoundWins===0&&p2RoundWins===0&&selectedGameMode==='1P'&&!dualCamMode;
+  trainingBeatTimer=6500;
   gameState='PLAYING';
   playerReadyForCombat=false;
-  await showBanner(`ROUND ${currentRound}`,900);
+  await showBanner(trainingBeat?'FIND YOUR RANGE':`ROUND ${currentRound}`,900);
   await showBanner('FIGHT!',500);
   roundLocked=false;
   setCombatPhase('READY','STEP INTO FRAME OR USE MANUAL','text-amber-300');

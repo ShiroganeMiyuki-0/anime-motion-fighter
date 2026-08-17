@@ -18,3 +18,7 @@ After a fresh reload, the match begins with both fighters at full health and the
 ## Continued product verification
 
 The opening now communicates a player goal before discussing implementation: find range, land one clean contact, and feel the arena answer back. A “Your first round” card explains where to stand, how to read the opponent’s telegraph, and that misses are part of learning distance. The entry action is now “ENTER THE ARENA,” while camera direction, arena view, sensitivity, split POV, manual controls, and webcam access remain available.
+
+## First-round training verification
+
+A fresh first-round browser run reached the existing readiness state, then Manual Controls allowed a clear P1 punch. The live HUD changed to “TRAINING — LAND ONE CLEAN CONTACT,” displayed a visible 1 COMBO response, showed impact particles and “-12 HP,” and left the opponent’s health readable. This confirms the training beat is not merely instructional copy: it creates a safe, actionable first success before the adaptive opponent becomes active.
