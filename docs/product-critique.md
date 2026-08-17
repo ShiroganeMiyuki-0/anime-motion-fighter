@@ -14,3 +14,7 @@ The single-arena camera is substantially more readable than the previous split P
 ## Fairness verification
 
 After a fresh reload, the match begins with both fighters at full health and the center prompt “STEP INTO FRAME OR USE MANUAL.” The AI waits until the player becomes ready, fixing the earlier product-breaking behavior where the opponent could damage or defeat the player during setup. This makes the first interaction fair and understandable.
+
+## Continued product verification
+
+The opening now communicates a player goal before discussing implementation: find range, land one clean contact, and feel the arena answer back. A “Your first round” card explains where to stand, how to read the opponent’s telegraph, and that misses are part of learning distance. The entry action is now “ENTER THE ARENA,” while camera direction, arena view, sensitivity, split POV, manual controls, and webcam access remain available.
