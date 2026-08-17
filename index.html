@@ -700,18 +700,30 @@ function processPose(landmarks){
   const wrists=[smoothed[15],smoothed[16]],feet=[smoothed[27],smoothed[28]];
   const now=performance.now();
   let handVelocity=0,footVelocity=0;
-  if(prevWristL)handVelocity=Math.max(handVelocity,ptDist(wrists[0],prevWristL));
-  if(prevWristR)handVelocity=Math.max(handVelocity,ptDist(wrists[1],prevWristR));
-  if(prevAnkleL)footVelocity=Math.max(footVelocity,ptDist(feet[0],prevAnkleL));
-  if(prevAnkleR)footVelocity=Math.max(footVelocity,ptDist(feet[1],prevAnkleR));
+  const oldWristL=prevWristL,oldWristR=prevWristR,oldAnkleL=prevAnkleL,oldAnkleR=prevAnkleR;
+  if(oldWristL)handVelocity=Math.max(handVelocity,ptDist(wrists[0],oldWristL));
+  if(oldWristR)handVelocity=Math.max(handVelocity,ptDist(wrists[1],oldWristR));
+  if(oldAnkleL)footVelocity=Math.max(footVelocity,ptDist(feet[0],oldAnkleL));
+  if(oldAnkleR)footVelocity=Math.max(footVelocity,ptDist(feet[1],oldAnkleR));
+  const shoulderL=smoothed[11],shoulderR=smoothed[12],hipL=smoothed[23],hipR=smoothed[24];
+  const handReach=Math.max(ptDist(wrists[0],shoulderL),ptDist(wrists[1],shoulderR));
+  const footReach=Math.max(ptDist(feet[0],hipL),ptDist(feet[1],hipR));
+  const previousHandReach=Math.max(oldWristL?ptDist(oldWristL,shoulderL):0,oldWristR?ptDist(oldWristR,shoulderR):0);
+  const previousFootReach=Math.max(oldAnkleL?ptDist(oldAnkleL,hipL):0,oldAnkleR?ptDist(oldAnkleR,hipR):0);
+  const handExtending=handReach-previousHandReach>0.012;
+  const footExtending=footReach-previousFootReach>0.012;
+  const handExtended=handReach>0.22;
+  const footExtended=footReach>0.30;
   prevWristL=wrists[0];prevWristR=wrists[1];prevAnkleL=feet[0];prevAnkleR=feet[1];
   document.getElementById('speedMetric').innerText=Math.max(handVelocity,footVelocity).toFixed(3);
   if(p1PhysicalHitCooldown>0){p1PhysicalHitCooldown--;setCombatPhase('RECOVERY','RESET YOUR STANCE','text-slate-300');return;}
-  if(footVelocity>sensitivityThreshold*0.9&&now-player.lastAttackTime>360){
+  if(footReach>0.24&&!footExtended&&footExtending){setCombatPhase('WIND-UP','EXTEND YOUR KICK','text-amber-200');}
+  else if(handReach>0.17&&!handExtended&&handExtending){setCombatPhase('WIND-UP','EXTEND YOUR HAND','text-amber-200');}
+  if(footVelocity>sensitivityThreshold*0.9&&footExtended&&footExtending&&now-player.lastAttackTime>360){
     player.lastAttackTime=now;player.stance='KICK';player.isGuarding=false;player.isCrouching=false;player.isCharging=false;
     setCombatPhase('STRIKE','KICK — DRIVE FORWARD','text-amber-300');
     check3DSpatialCollision('FOOT',footVelocity);
-  }else if(handVelocity>sensitivityThreshold&&now-player.lastAttackTime>300){
+  }else if(handVelocity>sensitivityThreshold&&handExtended&&handExtending&&now-player.lastAttackTime>300){
     player.lastAttackTime=now;player.stance='PUNCH';player.isGuarding=false;player.isCrouching=false;player.isCharging=false;
     setCombatPhase('STRIKE','HAND — DRIVE FORWARD','text-amber-300');
     check3DSpatialCollision('HAND',handVelocity);
