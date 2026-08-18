@@ -861,20 +861,41 @@ function landDualCamHit(fromP1,weapon){
   updateHud();checkWinLoss();
 }
 
+/*
+   The 3D rig and the webcam landmarks use different scales. A raw spherical
+   distance test made the contact rule difficult to tune and could disagree
+   with what the player saw on screen. Use an explicit arena-space torso zone:
+   the hand/foot must be close in height and depth, and must approach from the
+   player side of the opponent. The gesture intent gate in processPose still
+   decides when this check is allowed to run.
+*/
+const ONE_P_CONTACT_ZONE={
+  HAND:{forward:5.9,vertical:1.22,depth:1.05},
+  FOOT:{forward:6.05,vertical:1.48,depth:1.15}
+};
 function check3DSpatialCollision(type,velocity){
   if(!playerFighter3D||!aiFighter3D)return;
   const hand=new THREE.Vector3();playerFighter3D.armR.hand.getWorldPosition(hand);
   const foot=new THREE.Vector3();playerFighter3D.legR.foot.getWorldPosition(foot);
   const body=new THREE.Vector3();aiFighter3D.group.getWorldPosition(body);body.y+=1.5;
   const attackPos=type==='HAND'?hand:foot;
-  if(attackPos.distanceTo(body)<2.6){
-    p1PhysicalHitCooldown=18;
+  const zone=ONE_P_CONTACT_ZONE[type]||ONE_P_CONTACT_ZONE.HAND;
+  const horizontalGap=Math.abs(attackPos.x-body.x);
+  const verticalGap=Math.abs(attackPos.y-body.y);
+  const depthGap=Math.abs(attackPos.z-body.z);
+  const approachesOpponent=attackPos.x<=body.x+0.45;
+  const contact=approachesOpponent&&horizontalGap<=zone.forward&&verticalGap<=zone.vertical&&depthGap<=zone.depth;
+  // Prevent a webcam frame from repeatedly re-triggering the same result.
+  p1PhysicalHitCooldown=contact?18:10;
+  if(contact){
     playerScore+=type==='FOOT'?2:1;
     setCombatPhase('CONTACT',`CONTACT — ${type==='FOOT'?'FOOT':'HAND'} HIT`,'text-amber-300');
     if(type==='HAND')executePlayerPunch(1);else executePlayerKick(1);
     addFloatingText(`+${type==='FOOT'?2:1} HIT`,window.innerWidth*0.7,window.innerHeight*0.4,'#fbbf24');
     updateHud();
-  }else setCombatPhase('RECOVERY',`MISS — RESET YOUR STANCE`,'text-slate-300');
+  }else{
+    setCombatPhase('RECOVERY',`MISS — OUT OF RANGE · RESET YOUR STANCE`,'text-slate-300');
+  }
 }
 
 /* ============================= COMBAT ============================= */
