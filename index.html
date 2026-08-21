@@ -42,7 +42,7 @@ canvas{display:block;width:100%;height:100%;}
   #modeSelectModal .char-swatch{min-height:54px;}
 }
 .onboarding-tips{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:min(100%,620px);margin:0 auto 22px;}
-.onboarding-tip{padding:9px 8px;border:1px solid rgba(148,163,184,.2);border-radius:10px;background:rgba(15,23,42,.72);color:#cbd5e1;font-size:11px;line-height:1.35;}
+.onboarding-tip{padding:10px 9px;border:1px solid rgba(148,163,184,.2);border-radius:10px;background:rgba(15,23,42,.72);color:#cbd5e1;font-size:11px;line-height:1.4;}
 .onboarding-tip strong{display:block;color:#fbbf24;font-family:'Orbitron',sans-serif;font-size:9px;letter-spacing:.08em;margin-bottom:3px;}
 @media(max-width:540px){.onboarding-tips{grid-template-columns:1fr;max-width:260px;}.onboarding-tip{text-align:left;}}
 #hitFlash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:25;mix-blend-mode:overlay;}
@@ -185,7 +185,7 @@ ANIME MOTION <span class="text-[10px] text-amber-400 border border-amber-500/40 
 <div class="text-center px-1">
 <div id="gestureStatus" class="font-orbitron text-[10px] sm:text-xs font-bold text-amber-300 bg-slate-900/95 border border-amber-500/40 px-3 py-1 rounded-full uppercase tracking-wider backdrop-blur shadow-xl">STAND IN VIEW</div>
 <div id="combatReason" class="hidden max-w-[260px] text-[9px] sm:text-[10px] text-slate-300 bg-slate-950/85 border border-slate-700/70 px-2 py-1 rounded-lg mt-1 leading-tight" aria-live="polite"></div>
-<div id="comboCounter" class="hidden font-orbitron text-xl sm:text-3xl font-black text-cyan-400 mt-1.5 animate-bounce drop-shadow-[0_0_10px_rgba(56,189,248,0.8)]">0 COMBO!</div>
+<div id="comboCounter" class="hidden font-orbitron text-xl sm:text-3xl font-black text-cyan-400 mt-1.5 drop-shadow-[0_0_10px_rgba(56,189,248,0.8)]">0 COMBO!</div>
 </div>
 <div class="w-[45%] max-w-xs md:max-w-md bg-slate-900/85 p-2.5 sm:p-3 rounded-xl border border-rose-500/40 backdrop-blur neon-border-red">
 <div class="flex justify-between items-center mb-1">
@@ -239,11 +239,9 @@ ANIME MOTION <span class="text-[10px] text-amber-400 border border-amber-500/40 
 <p id="overlayDesc" class="text-slate-300 max-w-lg mb-4 text-sm leading-relaxed">Step into a short contact duel. Your first goal is simple: find your range, land one clean contact, and feel the arena answer back. Camera tracking is the main controller; manual controls and two-person play remain available when you want them.</p>
 <div class="mb-4 rounded-xl border border-amber-400/30 bg-amber-400/5 px-4 py-3 max-w-lg text-left"><div class="text-[10px] uppercase tracking-[.18em] text-amber-300 font-orbitron mb-1">Your first round</div><div class="text-xs text-slate-300 leading-relaxed">Stand where the fighter can see you. When the opponent telegraphs, answer with one clear hand or foot motion. Misses are part of learning the distance.</div></div>
 <div class="onboarding-tips" aria-label="Quick start tips">
-  <div class="onboarding-tip"><strong>CAPTURE</strong>Camera selects FRONT or BACK device direction.</div>
-  <div class="onboarding-tip"><strong>ARENA</strong>View selects FRONT, SIDE, or REAR perspective.</div>
-  <div class="onboarding-tip"><strong>TRACK</strong>FACING LENS works front-on; SIDE-FACING is for a Shadow Fight-style profile stance.</div>
-  <div class="onboarding-tip"><strong>PRIVATE VIEW</strong>Hide the preview for a cleaner screen; pose tracking continues until you stop the webcam.</div>
-  <div class="onboarding-tip"><strong>FALLBACK</strong>Manual controls remain available if tracking fails.</div>
+  <div class="onboarding-tip"><strong>1 · STAND IN VIEW</strong>Give the camera a clear look at your body.</div>
+  <div class="onboarding-tip"><strong>2 · MAKE ONE CLEAR MOTION</strong>Start with a punch or kick and watch the arena respond.</div>
+  <div class="onboarding-tip"><strong>3 · TAKE YOUR TIME</strong>Misses help you find the right distance. Use the guide if tracking needs help.</div>
 </div>
 <div id="overlayButtons" class="flex flex-col sm:flex-row gap-3">
 <button onclick="openModeSelectModal()" class="px-8 py-3 bg-gradient-to-r from-cyan-400 via-amber-400 to-rose-500 hover:scale-105 text-slate-950 font-orbitron font-black rounded-xl text-base shadow-xl transition"><i class="fa-solid fa-play mr-2"></i> ENTER THE ARENA</button>
