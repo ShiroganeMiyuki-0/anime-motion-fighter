@@ -644,7 +644,9 @@ let calibrationActive = false, calibrationStartedAt = 0, calibrationSamples = []
 let dualCamMode = false, p2LiveLandmarks = null, dualCamRunning = false;
 let dualContactState = { p1: Object.create(null), p2: Object.create(null) };
 let p1LimbCooldown = { LW:0, RW:0, LA:0, RA:0 }, p2LimbCooldown = { LW:0, RW:0, LA:0, RA:0 };
-let p1PhysicalHitCooldown = 0;
+let p1PhysicalHitCooldown = 0; // now in ms
+let poseStateFrames = { READY:0, GUARD:0, CHARGE:0, CROUCH:0 }; // debouncing
+const POSE_DEBOUNCE_FRAMES = 3; // require 3 consistent frames before accepting pose change
 let prevWristL = null, prevWristR = null, prevAnkleL = null, prevAnkleR = null;
 let lastPoseFrameAt = 0, lastValidPoseAt = 0, lastChargeToneAt = 0;
 
@@ -707,6 +709,41 @@ class SoundEngine {
   }
   playKO()     { this.tone('sawtooth', 500, 20, 0.9, 0.5); }
   playCombo(n) { this.tone('sine', 400 + n * 60, 200, 0.15, 0.3); }
+  playRoundStart() {
+    this.tone('sine', 440, 880, 0.3, 0.2);
+    setTimeout(() => this.tone('sine', 660, 1320, 0.2, 0.15), 150);
+  }
+  playVictory() {
+    const notes = [523, 659, 784, 1047];
+    notes.forEach((f, i) => setTimeout(() => this.tone('sine', f, f * 0.5, 0.4, 0.2), i * 120));
+  }
+  playDefeat() {
+    this.tone('sawtooth', 300, 80, 0.6, 0.3);
+    setTimeout(() => this.tone('sawtooth', 200, 50, 0.5, 0.2), 200);
+  }
+  // Ambient drone — subtle background atmosphere
+  startAmbient() {
+    if (!this.ctx || this._ambientRunning) return;
+    this._ambientRunning = true;
+    const osc1 = this.ctx.createOscillator();
+    const osc2 = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    const filter = this.ctx.createBiquadFilter();
+    osc1.type = 'sine'; osc1.frequency.value = 55;
+    osc2.type = 'sine'; osc2.frequency.value = 82.5;
+    filter.type = 'lowpass'; filter.frequency.value = 200;
+    gain.gain.value = 0.04;
+    osc1.connect(filter); osc2.connect(filter);
+    filter.connect(gain); gain.connect(this.ctx.destination);
+    osc1.start(); osc2.start();
+    this._ambientOsc = [osc1, osc2];
+    this._ambientGain = gain;
+  }
+  stopAmbient() {
+    this._ambientRunning = false;
+    this._ambientOsc?.forEach(o => { try { o.stop(); } catch(e) {} });
+    this._ambientOsc = null;
+  }
 }
 const sound = new SoundEngine();
 
@@ -1115,10 +1152,12 @@ function processPose(landmarks) {
   lastPoseFrameAt = now;
 
   const shoulderL = smoothed[11], shoulderR = smoothed[12], hipL = smoothed[23], hipR = smoothed[24];
-  const handSpeedL = prevWristL ? ptDist3(wrists[0], prevWristL) : 0;
-  const handSpeedR = prevWristR ? ptDist3(wrists[1], prevWristR) : 0;
-  const footSpeedL = prevAnkleL ? ptDist3(feet[0], prevAnkleL) : 0;
-  const footSpeedR = prevAnkleR ? ptDist3(feet[1], prevAnkleR) : 0;
+  // Frame-rate normalized velocity (distance / time in seconds)
+  const timeFactor = poseDelta > 0 ? 1000 / poseDelta : 30;
+  const handSpeedL = prevWristL ? ptDist3(wrists[0], prevWristL) * timeFactor : 0;
+  const handSpeedR = prevWristR ? ptDist3(wrists[1], prevWristR) * timeFactor : 0;
+  const footSpeedL = prevAnkleL ? ptDist3(feet[0], prevAnkleL) * timeFactor : 0;
+  const footSpeedR = prevAnkleR ? ptDist3(feet[1], prevAnkleR) * timeFactor : 0;
   const handVelocity = Math.max(handSpeedL, handSpeedR);
   const footVelocity = Math.max(footSpeedL, footSpeedR);
   const handReachL = ptDist3(wrists[0], shoulderL), handReachR = ptDist3(wrists[1], shoulderR);
@@ -1142,13 +1181,24 @@ function processPose(landmarks) {
   const chargePose = !guardPose && ptDist3(wrists[0], wrists[1]) < 0.22 && wristCenterY > shoulderCenterY + 0.06 && wristCenterY < hipCenterY + 0.16;
   const crouchPose = hipCenterY - shoulderCenterY > 0.28;
 
-  if (guardPose && now - player.lastGestureTime > 120) {
+  // Debounced pose state detection — require consistent pose for POSE_DEBOUNCE_FRAMES
+  poseStateFrames.GUARD = guardPose ? poseStateFrames.GUARD + 1 : 0;
+  poseStateFrames.CHARGE = chargePose ? poseStateFrames.CHARGE + 1 : 0;
+  poseStateFrames.CROUCH = crouchPose ? poseStateFrames.CROUCH + 1 : 0;
+
+  const guardConfirmed = poseStateFrames.GUARD >= POSE_DEBOUNCE_FRAMES;
+  const chargeConfirmed = poseStateFrames.CHARGE >= POSE_DEBOUNCE_FRAMES;
+  const crouchConfirmed = poseStateFrames.CROUCH >= POSE_DEBOUNCE_FRAMES;
+
+  // Priority: Guard > Attack > Charge > Crouch > Idle
+  if (guardConfirmed && now - player.lastGestureTime > 120) {
     player.isGuarding = true; player.stance = 'GUARD'; player.isCharging = false; player.isCrouching = false;
     setCombatPhase('GUARD', 'GUARD — HOLD YOUR GROUND', 'text-indigo-400');
     return;
   }
-  if (p1PhysicalHitCooldown > 0) { p1PhysicalHitCooldown--; return; }
-  if (chargePose && now - player.lastGestureTime > 120) {
+  // Time-based hit cooldown (ms instead of frame count)
+  if (p1PhysicalHitCooldown > 0) { p1PhysicalHitCooldown -= poseDelta; return; }
+  if (chargeConfirmed && now - player.lastGestureTime > 120) {
     player.isCharging = true; player.isGuarding = false; player.isCrouching = false; player.stance = 'CHARGING';
     player.ki = Math.min(100, player.ki + poseDelta * 0.035);
     if (now - lastChargeToneAt > 240) { sound.playCharge(); lastChargeToneAt = now; }
@@ -1156,23 +1206,31 @@ function processPose(landmarks) {
     setCombatPhase('CHARGE', player.ki >= 100 ? 'KI FULL — EXTEND BOTH HANDS' : 'CHARGING KI...', 'text-amber-400');
     return;
   }
-  if (crouchPose && now - player.lastGestureTime > 120) {
+  if (crouchConfirmed && now - player.lastGestureTime > 120) {
     player.isCrouching = true; player.isGuarding = false; player.isCharging = false; player.stance = 'CROUCH';
     setCombatPhase('CROUCH', 'DUCKING — AVOID HIGH ATTACKS', 'text-purple-400');
     return;
   }
 
-  if (footVelocity > sensitivityThreshold * 0.9 && footExtended && footExtending && now - player.lastGestureTime > 360) {
+  // Velocity thresholds are now frame-rate independent (normalized to per-second)
+  const velThreshold = sensitivityThreshold * 30;
+  if (footVelocity > velThreshold * 0.9 && footExtended && footExtending && now - player.lastGestureTime > 360) {
     player.lastGestureTime = now; player.stance = 'KICK'; player.isGuarding = false; player.isCrouching = false; player.isCharging = false;
     setCombatPhase('STRIKE', 'KICK!', 'text-emerald-400');
     resolvePoseStrike('FOOT', footVelocity);
-  } else if (handVelocity > sensitivityThreshold && handExtended && handExtending && now - player.lastGestureTime > 300) {
+  } else if (handVelocity > velThreshold && handExtended && handExtending && now - player.lastGestureTime > 300) {
     player.lastGestureTime = now; player.stance = 'PUNCH'; player.isGuarding = false; player.isCrouching = false; player.isCharging = false;
     setCombatPhase('STRIKE', 'PUNCH!', 'text-cyan-400');
     resolvePoseStrike('HAND', handVelocity);
   } else if (performance.now() > combatPhaseUntil) {
     player.stance = 'READY'; player.isGuarding = false; player.isCrouching = false; player.isCharging = false;
-    setCombatPhase('READY', 'READY — MOVE TO STRIKE', 'text-emerald-400');
+    // Show range status when ready
+    const range = getRangeStatus();
+    if (range) {
+      setCombatPhase('READY', range.status + ' — MOVE TO STRIKE', range.color);
+    } else {
+      setCombatPhase('READY', 'READY — MOVE TO STRIKE', 'text-emerald-400');
+    }
   }
 }
 
@@ -1219,7 +1277,7 @@ function incrementCombo() {
 function triggerHitStop(frames) { hitStopFrames = Math.max(hitStopFrames, frames); }
 function applyKnockback(target, attackerIsP1, amount) { target.knockback = amount * (attackerIsP1 ? 1 : -1); }
 
-function executePlayerPunch(attackerNum) {
+function executePlayerPunch(attackerNum, damageMultiplier = 1.0) {
   if (!beginCombatAttack(attackerNum, 'PUNCH')) return;
   sound.playPunch();
   const isP1 = attackerNum === 1;
@@ -1228,9 +1286,11 @@ function executePlayerPunch(attackerNum) {
   if (isP1) incrementCombo();
   const rule = COMBAT_RULES.PUNCH;
   if (isP1) playerScore += 1; else aiScore += 1;
-  let damage = rule.damage;
+  let damage = rule.damage * damageMultiplier;
   const counterReady = isP1 && player.counterUntil > performance.now();
-  if (counterReady) { damage = rule.counterDamage; player.counterUntil = 0; setCombatPhase('COUNTER', 'COUNTER! +' + damage, 'text-amber-300'); }
+  if (counterReady) { damage = rule.counterDamage * damageMultiplier; player.counterUntil = 0; setCombatPhase('COUNTER', 'COUNTER! +' + Math.ceil(damage), 'text-amber-300'); }
+  // Combo damage multiplier: +5% per combo hit (caps at+50%)
+  if (isP1 && combo > 1) damage *= 1 + Math.min(combo - 1, 10) * 0.05;
 
   if (target === player && Math.abs(player.dodgeZ) > 0.75 && !target.isGuarding) {
     setCombatPhase('DODGE', 'DODGED!', 'text-lime-300');
@@ -1256,7 +1316,7 @@ function executePlayerPunch(attackerNum) {
   updateHud(); checkWinLoss();
 }
 
-function executePlayerKick(attackerNum) {
+function executePlayerKick(attackerNum, damageMultiplier = 1.0) {
   if (!beginCombatAttack(attackerNum, 'KICK')) return;
   sound.playKick();
   const isP1 = attackerNum === 1;
@@ -1265,9 +1325,11 @@ function executePlayerKick(attackerNum) {
   if (isP1) incrementCombo();
   const rule = COMBAT_RULES.KICK;
   if (isP1) playerScore += 2; else aiScore += 2;
-  let damage = rule.damage;
+  let damage = rule.damage * damageMultiplier;
   const counterReady = isP1 && player.counterUntil > performance.now();
-  if (counterReady) { damage = rule.counterDamage; player.counterUntil = 0; setCombatPhase('COUNTER', 'COUNTER KICK! +' + damage, 'text-amber-300'); }
+  if (counterReady) { damage = rule.counterDamage * damageMultiplier; player.counterUntil = 0; setCombatPhase('COUNTER', 'COUNTER KICK! +' + Math.ceil(damage), 'text-amber-300'); }
+  // Combo damage multiplier: +5% per combo hit (caps at+50%)
+  if (isP1 && combo > 1) damage *= 1 + Math.min(combo - 1, 10) * 0.05;
 
   if (target === player && Math.abs(player.dodgeZ) > 0.75 && !target.isGuarding) {
     setCombatPhase('DODGE', 'DODGED!', 'text-lime-300');
@@ -1606,6 +1668,30 @@ function applyCameraPreviewState() {
   if (label) label.textContent = cameraFeedVisible ? 'HIDE CAM' : 'SHOW CAM';
 }
 
+function showCameraError(message) {
+  const overlay = document.getElementById('gameOverlay');
+  if (!overlay) return;
+  document.getElementById('overlayTitle').innerHTML = '<span class="text-amber-400">CAMERA ISSUE</span>';
+  document.getElementById('overlayDesc').textContent = message;
+  document.getElementById('overlayButtons').innerHTML = `
+    <button onclick="initCamera()" class="cta-button cta-primary text-sm"><i class="fa-solid fa-video mr-2"></i>TRY AGAIN</button>
+    <button onclick="document.getElementById('gameOverlay').classList.add('hidden')" class="cta-button cta-secondary text-sm"><i class="fa-solid fa-gamepad mr-2"></i>USE KEYBOARD/TOUCH</button>
+  `;
+  overlay.classList.remove('hidden');
+}
+
+// Range indicator — shows if player is in effective attack range
+function getRangeStatus() {
+  if (!livePoseLandmarks || !finiteLandmarks(livePoseLandmarks)) return null;
+  const shoulderL = livePoseLandmarks[11], shoulderR = livePoseLandmarks[12];
+  const shoulderWidth = Math.abs(shoulderL.x - shoulderR.x);
+  // Shoulder width < 0.08 means too far away, > 0.35 means too close
+  if (shoulderWidth < 0.08) return { status: 'TOO FAR', color: 'text-rose-400', icon: 'fa-arrow-left' };
+  if (shoulderWidth < 0.12) return { status: 'AT RANGE', color: 'text-amber-400', icon: 'fa-circle' };
+  if (shoulderWidth > 0.35) return { status: 'TOO CLOSE', color: 'text-rose-400', icon: 'fa-arrow-right' };
+  return { status: 'GOOD RANGE', color: 'text-emerald-400', icon: 'fa-check-circle' };
+}
+
 function stopCameraStream() {
   poseLoopRunning = false;
   if (cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
@@ -1640,6 +1726,7 @@ async function initCamera() {
   if (selectedGameMode === 'CAM2P') { initDualCamera(); return; }
   if (!navigator.mediaDevices?.getUserMedia) {
     updateGestureStatus('WEBCAM UNAVAILABLE — USE TOUCH/KEYBOARD', 'text-rose-400');
+    showCameraError('This browser does not support webcam access. Use Chrome, Edge, or Firefox on desktop, or switch to keyboard/touch controls.');
     return;
   }
   dualCamMode = false; sound.init();
@@ -1648,6 +1735,10 @@ async function initCamera() {
 
   const videoElement = document.getElementById('webcamInput');
   try {
+    // Check if MediaPipe loaded
+    if (typeof Pose === 'undefined') {
+      throw new Error('MediaPipe Pose library not loaded');
+    }
     poseInstance = new Pose({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}` });
     poseInstance.setOptions({ modelComplexity: 1, smoothLandmarks: true, enableSegmentation: false, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
     poseInstance.onResults((results) => {
@@ -1802,7 +1893,11 @@ function landDualCamHit(fromP1, weapon) {
 
 function resolvePoseStrike(type, velocity) {
   if (selectedGameMode === '1P' && !dualCamMode) {
-    if (type === 'FOOT') executePlayerKick(1); else executePlayerPunch(1);
+    // Velocity-based damage bonus: faster strikes deal up to 20% more
+    const velThreshold = sensitivityThreshold * 30;
+    const velRatio = Math.min(2.0, velocity / (velThreshold * 1.5));
+    const damageBonus = 1.0 + Math.max(0, velRatio - 1.0) * 0.2;
+    if (type === 'FOOT') executePlayerKick(1, damageBonus); else executePlayerPunch(1, damageBonus);
     return;
   }
   // Spatial collision for multi-player
@@ -1998,6 +2093,7 @@ function endGame(playerWon) {
   if (playerWon && selectedGameMode === '1P') {
     gameLevel = Math.min(THREAT_TIERS.length, gameLevel + 1);
   }
+  if (playerWon) sound.playVictory(); else sound.playDefeat();
   const overlay = document.getElementById('gameOverlay');
   document.getElementById('overlayTitle').innerHTML = playerWon
     ? '<span class="text-cyan-400">VICTORY</span>'
@@ -2035,6 +2131,7 @@ async function startNextRound() {
   trainingBeatTimer = 6500;
   gameState = 'PLAYING'; playerReadyForCombat = false;
   await showBanner(trainingBeat ? 'FIND YOUR RANGE' : 'ROUND ' + currentRound, 900);
+  sound.playRoundStart();
   await showBanner('FIGHT!', 500);
   roundLocked = false;
   setCombatPhase('READY', 'STEP INTO FRAME OR USE TOUCH/KEYBOARD', 'text-amber-400');
@@ -2109,6 +2206,8 @@ function bootGame() {
     renderCharGrid('landingP1Grid', ch => { selectedP1Char = ch; }, selectedP1Char);
     renderCharGrid('landingP2Grid', ch => { selectedP2Char = ch; }, selectedP2Char);
     requestAnimationFrame(animate3D);
+    sound.init();
+    sound.startAmbient();
 
     // Show touch controls on mobile
     if (isMobile) {
