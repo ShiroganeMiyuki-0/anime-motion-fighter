@@ -79,6 +79,12 @@ canvas#fxCanvas{display:block;width:100%;height:100%;}
 .phase-sub.active{opacity:1;}
 
 #hitFlash{position:absolute;inset:0;pointer-events:none;z-index:25;opacity:0;transition:opacity .15s ease-out;}
+#impactFrame{position:absolute;inset:0;pointer-events:none;z-index:26;opacity:0;transition:opacity .08s ease-out;background:radial-gradient(circle at center,rgba(255,255,255,0.9) 0%,rgba(255,255,255,0) 70%);}
+#koOverlay{position:absolute;inset:0;z-index:35;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transition:opacity .4s;}
+#koOverlay.active{opacity:1;}
+.ko-text{font-family:'Orbitron',sans-serif;font-weight:900;font-size:clamp(48px,12vw,120px);color:#f43f5e;text-shadow:0 0 40px rgba(244,63,94,0.8),0 0 80px rgba(244,63,94,0.4),0 4px 0 #000;letter-spacing:0.15em;animation:koSlam 0.6s cubic-bezier(0.25,0.46,0.45,0.94) both;}
+@keyframes koSlam{0%{transform:scale(3) rotate(-5deg);opacity:0}60%{transform:scale(0.9) rotate(2deg);opacity:1}100%{transform:scale(1) rotate(0deg);opacity:1}}
+#slowMotionOverlay{position:absolute;inset:0;pointer-events:none;z-index:24;background:radial-gradient(ellipse at center,transparent 40%,rgba(0,0,0,0.4) 100%);opacity:0;transition:opacity .3s;}
 #vignette{position:absolute;inset:0;pointer-events:none;z-index:15;box-shadow:inset 0 0 120px 40px rgba(0,0,0,.7);}
 
 /* ===== COMBO COUNTER ===== */
@@ -361,6 +367,9 @@ canvas#fxCanvas{display:block;width:100%;height:100%;}
     <canvas id="fxCanvas" class="absolute inset-0 w-full h-full pointer-events-none z-10"></canvas>
     <div id="vignette"></div>
     <div id="hitFlash"></div>
+    <div id="impactFrame"></div>
+    <div id="slowMotionOverlay"></div>
+    <div id="koOverlay"><span class="ko-text">K.O.</span></div>
 
     <!-- Combat Phase Display (center) -->
     <div id="combatPhaseDisplay">
@@ -1322,6 +1331,7 @@ function executePlayerPunch(attackerNum, damageMultiplier = 1.0) {
     create3DHitSparks(target.x, 1.7, 0, attackerChar.colorHex, 14);
     addFloatingText('-' + Math.ceil(damage), isP1 ? 0.7 : 0.3, 0.4, '#f43f5e');
     target.hitFlash = 1; applyKnockback(target, isP1, 0.18); triggerHitStop(4); flashScreen(0.08);
+    speedLinesActive = true; speedLinesTimer = 8;
   }
   updateHud(); checkWinLoss();
 }
@@ -1360,7 +1370,8 @@ function executePlayerKick(attackerNum, damageMultiplier = 1.0) {
     setPortraitState(isP1 ? 'p2' : 'p1', 'hit');
     create3DHitSparks(target.x, 1.7, 0, attackerChar.colorHex, 20);
     addFloatingText('-' + Math.ceil(damage) + ' KICK!', isP1 ? 0.7 : 0.3, 0.4, '#10b981');
-    target.hitFlash = 1; applyKnockback(target, isP1, 0.3); triggerHitStop(6); flashScreen(0.14);
+    target.hitFlash = 1; applyKnockback(target, isP1, 0.3); triggerHitStop(6); flashScreen(0.14); triggerImpactFrame();
+    speedLinesActive = true; speedLinesTimer = 12;
   }
   updateHud(); checkWinLoss();
 }
@@ -1374,7 +1385,7 @@ function executePlayerSuper(attackerNum) {
   attacker.ki = 0; sound.playBeam();
   triggerCharacterSuperFX(attackerChar, attacker.x, target.x);
   speedLinesActive = true; speedLinesTimer = 30;
-  triggerHitStop(8); flashScreen(0.22);
+  triggerHitStop(8); flashScreen(0.22); triggerImpactFrame(); triggerSlowMotion(600);
   let damage = COMBAT_RULES.SUPER.damage;
 
   if (target.isCrouching) {
@@ -1450,8 +1461,34 @@ function updateAdaptiveAI(delta) {
 }
 
 // ===================== FX =====================
+// Dynamic arena lighting — flashes color on hits
+let arenaLightFlash = null;
+function flashArenaLight(colorHex) {
+  if (!scene) return;
+  // Find existing flash light or create one
+  if (!arenaLightFlash) {
+    arenaLightFlash = new THREE.PointLight(0xffffff, 0, 15);
+    arenaLightFlash.position.set(0, 5, 0);
+    scene.add(arenaLightFlash);
+  }
+  arenaLightFlash.color.setHex(colorHex);
+  arenaLightFlash.intensity = 3;
+  // Decay over time
+  const decay = () => {
+    if (arenaLightFlash.intensity > 0.1) {
+      arenaLightFlash.intensity *= 0.88;
+      requestAnimationFrame(decay);
+    } else {
+      arenaLightFlash.intensity = 0;
+    }
+  };
+  decay();
+}
+
 function create3DHitSparks(x, y, z, colorHex, count = 15) {
   cameraShake = Math.max(cameraShake, 8);
+  // Dynamic arena lighting — flash the arena color on hit
+  flashArenaLight(colorHex);
   for (let i = 0; i < count; i++) {
     const p = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 6), new THREE.MeshBasicMaterial({ color: colorHex }));
     p.position.set(x, y, z);
@@ -1508,6 +1545,85 @@ function flashScreen(intensity) {
   el.style.opacity = intensity;
   requestAnimationFrame(() => { el.style.transition = 'opacity 200ms ease-out'; el.style.opacity = 0; });
   setTimeout(() => { el.style.transition = ''; }, 250);
+}
+
+// Anime-style impact frame — white flash with freeze on big hits
+function triggerImpactFrame() {
+  const el = document.getElementById('impactFrame');
+  el.style.opacity = '0.9';
+  setTimeout(() => { el.style.opacity = '0'; }, 80);
+}
+
+// Slow motion effect — slows down the game for dramatic moments
+let slowMotionActive = false;
+let slowMotionTimer = null;
+function triggerSlowMotion(durationMs = 800) {
+  slowMotionActive = true;
+  const overlay = document.getElementById('slowMotionOverlay');
+  overlay.style.opacity = '1';
+  clearTimeout(slowMotionTimer);
+  slowMotionTimer = setTimeout(() => {
+    slowMotionActive = false;
+    overlay.style.opacity = '0';
+  }, durationMs);
+}
+
+// Dramatic KO sequence
+async function playKOSequence(playerWon) {
+  // Slow motion + impact frame
+  triggerSlowMotion(1200);
+  triggerImpactFrame();
+  cameraShake = 15;
+  speedLinesActive = true;
+  speedLinesTimer = 40;
+
+  // Show KO text
+  const koOverlay = document.getElementById('koOverlay');
+  const koText = koOverlay.querySelector('.ko-text');
+  koText.textContent = playerWon ? 'K.O.' : 'K.O.';
+  koText.style.color = playerWon ? '#38bdf8' : '#f43f5e';
+  koText.style.textShadow = playerWon
+    ? '0 0 40px rgba(56,189,248,0.8),0 0 80px rgba(56,189,248,0.4),0 4px 0 #000'
+    : '0 0 40px rgba(244,63,94,0.8),0 0 80px rgba(244,63,94,0.4),0 4px 0 #000';
+  koOverlay.classList.add('active');
+
+  // Wait for dramatic pause
+  await new Promise(r => setTimeout(r, 1800));
+  koOverlay.classList.remove('active');
+}
+
+// Victory/defeat screen with stats
+function showMatchResult(playerWon) {
+  const overlay = document.getElementById('gameOverlay');
+  const title = document.getElementById('overlayTitle');
+  const desc = document.getElementById('overlayDesc');
+  const buttons = document.getElementById('overlayButtons');
+
+  const winColor = playerWon ? 'text-cyan-400' : 'text-rose-500';
+  const winIcon = playerWon ? 'fa-trophy' : 'fa-skull';
+  const winText = playerWon ? 'VICTORY' : 'DEFEATED';
+
+  title.innerHTML = `<i class="fa-solid ${winIcon} mr-2"></i><span class="${winColor}">${winText}</span>`;
+
+  // Match stats
+  const stats = [
+    `Rounds: ${p1RoundWins}-${p2RoundWins}`,
+    `Best Combo: ${combo} hits`,
+    `Threat Level: ${tierName(gameLevel)}`,
+    `Fighter: ${selectedP1Char.name}`,
+  ].join(' · ');
+
+  desc.innerHTML = `
+    <div style="margin-bottom:12px;">${playerWon ? selectedP1Char.name + ' dominates the arena!' : selectedP2Char.name + ' wins the duel.'}</div>
+    <div style="font-size:11px;color:#94a3b8;font-family:Orbitron;letter-spacing:0.05em;">${stats}</div>
+  `;
+
+  buttons.innerHTML = `
+    <button onclick="startMatch()" class="cta-button cta-primary text-sm"><i class="fa-solid fa-rotate-right mr-2"></i>REMATCH</button>
+    <button onclick="openModeSelectModal()" class="cta-button cta-secondary text-sm"><i class="fa-solid fa-users mr-2"></i>CHANGE MODE</button>
+  `;
+
+  overlay.classList.remove('hidden');
 }
 
 function addFloatingText(text, xRatio, yRatio, color) {
@@ -1612,6 +1728,8 @@ function renderAnimeOverlayFX() {
 function runFrame(now) {
   let delta = now - lastTime; lastTime = now;
   if (gameState === 'PAUSED') { renderSceneView(); return; }
+  // Slow motion effect
+  if (slowMotionActive) delta *= 0.3;
   if (hitStopFrames > 0) { hitStopFrames--; delta *= 0.15; }
   const dt = Math.min(delta, 50) / 1000;
 
@@ -2218,8 +2336,29 @@ function showBanner(text, ms) {
   return new Promise(res => {
     const banner = document.getElementById('roundBanner');
     const txt = document.getElementById('roundBannerText');
-    txt.textContent = text; banner.classList.add('active');
-    setTimeout(() => { banner.classList.remove('active'); res(); }, ms);
+    txt.textContent = text;
+    // Dramatic entrance
+    txt.style.transform = 'scale(2.5) rotate(-5deg)';
+    txt.style.opacity = '0';
+    banner.classList.add('active');
+    requestAnimationFrame(() => {
+      txt.style.transition = 'all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+      txt.style.transform = 'scale(1) rotate(0deg)';
+      txt.style.opacity = '1';
+    });
+    // Flash effect on banner
+    flashScreen(0.15);
+    cameraShake = Math.max(cameraShake, 5);
+    setTimeout(() => {
+      txt.style.transition = 'all 0.3s ease-in';
+      txt.style.transform = 'scale(0.8)';
+      txt.style.opacity = '0';
+      setTimeout(() => {
+        banner.classList.remove('active');
+        txt.style.transition = '';
+        res();
+      }, 300);
+    }, ms);
   });
 }
 
@@ -2228,9 +2367,18 @@ async function resolveRound(playerWon) {
   if (playerWon) p1RoundWins++; else p2RoundWins++;
   renderRoundPips();
   const matchOver = p1RoundWins >= roundsToWin || p2RoundWins >= roundsToWin;
-  await showBanner(playerWon ? 'ROUND WIN!' : 'ROUND LOST', 1400);
-  if (matchOver) endGame(p1RoundWins > p2RoundWins);
-  else { currentRound++; await startNextRound(); }
+
+  // Play dramatic KO sequence
+  await playKOSequence(playerWon);
+
+  if (matchOver) {
+    await showBanner(playerWon ? 'MATCH WIN!' : 'MATCH LOST', 1000);
+    endGame(p1RoundWins > p2RoundWins);
+  } else {
+    await showBanner(playerWon ? 'ROUND WIN!' : 'ROUND LOST', 1000);
+    currentRound++;
+    await startNextRound();
+  }
 }
 
 function endGame(playerWon) {
@@ -2239,18 +2387,7 @@ function endGame(playerWon) {
     gameLevel = Math.min(THREAT_TIERS.length, gameLevel + 1);
   }
   if (playerWon) sound.playVictory(); else sound.playDefeat();
-  const overlay = document.getElementById('gameOverlay');
-  document.getElementById('overlayTitle').innerHTML = playerWon
-    ? '<span class="text-cyan-400">VICTORY</span>'
-    : '<span class="text-rose-500">DEFEATED</span>';
-  document.getElementById('overlayDesc').textContent = playerWon
-    ? selectedP1Char.name + ' wins ' + p1RoundWins + '-' + p2RoundWins + '! Threat level: ' + tierName(gameLevel)
-    : selectedP2Char.name + ' wins ' + p2RoundWins + '-' + p1RoundWins + '. Try again!';
-  document.getElementById('overlayButtons').innerHTML = `
-    <button onclick="startMatch()" class="cta-button cta-primary text-sm"><i class="fa-solid fa-rotate-right mr-2"></i>REMATCH</button>
-    <button onclick="openModeSelectModal()" class="cta-button cta-secondary text-sm"><i class="fa-solid fa-users mr-2"></i>CHANGE MODE</button>
-  `;
-  overlay.classList.remove('hidden');
+  showMatchResult(playerWon);
 }
 
 async function startNextRound() {
