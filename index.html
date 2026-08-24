@@ -122,7 +122,7 @@ canvas#fxCanvas{display:block;width:100%;height:100%;}
 .touch-btn-charge{background:rgba(245,158,11,.2);color:#f59e0b;border:2px solid rgba(245,158,11,.4);}
 
 /* ===== CAMERA FEED ===== */
-#cameraFeedPanel{position:absolute;bottom:12px;left:12px;width:min(28vw,240px);height:min(20vw,170px);min-width:160px;min-hright:100px;background:rgba(2,6,23,.85);border-radius:12px;overflow:hidden;border:1px solid rgba(148,163,184,.15);backdrop-filter:blur(8px);z-index:20;opacity:0;pointer-events:none;transition:opacity .3s;}
+#cameraFeedPanel{position:absolute;bottom:12px;left:12px;width:min(35vw,300px);height:min(26vw,220px);min-width:200px;min-height:140px;background:rgba(2,6,23,.85);border-radius:14px;overflow:hidden;border:2px solid rgba(56,189,248,.3);backdrop-filter:blur(8px);z-index:20;opacity:0;pointer-events:none;transition:opacity .3s;box-shadow:0 0 20px rgba(56,189,248,.15);}
 #cameraFeedPanel.visible{opacity:1;pointer-events:auto;}
 
 /* ===== SETTINGS PANEL ===== */
@@ -1151,6 +1151,11 @@ function processPose(landmarks) {
   const poseDelta = lastPoseFrameAt ? Math.min(120, Math.max(16, now - lastPoseFrameAt)) : 33;
   lastPoseFrameAt = now;
 
+  // Check which body parts are visible for feedback
+  const handsVisible = (smoothed[15]?.visibility || 0) > 0.5 && (smoothed[16]?.visibility || 0) > 0.5;
+  const feetVisible = (smoothed[27]?.visibility || 0) > 0.5 && (smoothed[28]?.visibility || 0) > 0.5;
+  const allVisible = handsVisible && feetVisible;
+
   const shoulderL = smoothed[11], shoulderR = smoothed[12], hipL = smoothed[23], hipR = smoothed[24];
   // Frame-rate normalized velocity (distance / time in seconds)
   const timeFactor = poseDelta > 0 ? 1000 / poseDelta : 30;
@@ -1226,7 +1231,12 @@ function processPose(landmarks) {
     player.stance = 'READY'; player.isGuarding = false; player.isCrouching = false; player.isCharging = false;
     // Show range status when ready
     const range = getRangeStatus();
-    if (range) {
+    if (!allVisible) {
+      const missing = [];
+      if (!handsVisible) missing.push('HANDS');
+      if (!feetVisible) missing.push('FEET');
+      setCombatPhase('READY', 'SHOW YOUR ' + missing.join(' + '), 'text-amber-400');
+    } else if (range) {
       setCombatPhase('READY', range.status + ' — MOVE TO STRIKE', range.color);
     } else {
       setCombatPhase('READY', 'READY — MOVE TO STRIKE', 'text-emerald-400');
@@ -1656,6 +1666,135 @@ function renderSceneView() {
   }
 }
 
+// ===================== SKELETON OVERLAY =====================
+// Draws the player's body on the camera preview so they can see what the game sees
+function drawSkeletonOverlay(ctx, landmarks, w, h) {
+  if (!landmarks || landmarks.length < 33) return;
+
+  // Connection lines between body parts
+  const connections = [
+    [11,12], [11,13], [13,15], [12,14], [14,16], // arms
+    [11,23], [12,24], [23,24], // torso
+    [23,25], [25,27], [24,26], [26,28], // legs
+    [0,11], [0,12], // neck
+  ];
+
+  // Draw connection lines
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = 'rgba(56, 189, 248, 0.6)'; // cyan
+  ctx.lineCap = 'round';
+  for (const [a, b] of connections) {
+    const la = landmarks[a], lb = landmarks[b];
+    if (!la || !lb) continue;
+    ctx.beginPath();
+    ctx.moveTo(la.x * w, la.y * h);
+    ctx.lineTo(lb.x * w, lb.y * h);
+    ctx.stroke();
+  }
+
+  // Draw body part dots
+  const keyPoints = [
+    { idx: 15, label: 'L', color: '#38bdf8' }, // left wrist
+    { idx: 16, label: 'R', color: '#38bdf8' }, // right wrist
+    { idx: 27, label: 'L', color: '#10b981' }, // left ankle
+    { idx: 28, label: 'R', color: '#10b981' }, // right ankle
+    { idx: 11, label: '', color: '#94a3b8' },  // left shoulder
+    { idx: 12, label: '', color: '#94a3b8' },  // right shoulder
+    { idx: 23, label: '', color: '#94a3b8' },  // left hip
+    { idx: 24, label: '', color: '#94a3b8' },  // right hip
+  ];
+
+  for (const pt of keyPoints) {
+    const lm = landmarks[pt.idx];
+    if (!lm) continue;
+    const x = lm.x * w, y = lm.y * h;
+    const vis = lm.visibility || 0;
+    const radius = vis > 0.5 ? 6 : 4;
+    const alpha = Math.max(0.3, vis);
+
+    // Glow effect
+    ctx.beginPath();
+    ctx.arc(x, y, radius + 4, 0, Math.PI * 2);
+    ctx.fillStyle = pt.color.replace(')', `, ${alpha * 0.3})`).replace('rgb', 'rgba');
+    ctx.fill();
+
+    // Solid dot
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fillStyle = vis > 0.5 ? pt.color : '#ef4444';
+    ctx.globalAlpha = alpha;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // Label
+    if (pt.label) {
+      ctx.font = 'bold 9px Orbitron';
+      ctx.fillStyle = '#fff';
+      ctx.fillText(pt.label, x + 8, y + 3);
+    }
+  }
+
+  // Draw attack zones (hands and feet) with larger indicator
+  const attackParts = [15, 16, 27, 28];
+  for (const idx of attackParts) {
+    const lm = landmarks[idx];
+    if (!lm) continue;
+    const x = lm.x * w, y = lm.y * h;
+    // Pulsing ring
+    const pulse = Math.sin(performance.now() * 0.005) * 0.3 + 0.7;
+    ctx.beginPath();
+    ctx.arc(x, y, 14, 0, Math.PI * 2);
+    ctx.strokeStyle = idx <= 16 ? `rgba(56, 189, 248, ${pulse * 0.4})` : `rgba(16, 185, 129, ${pulse * 0.4})`;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  // Tracking quality bar at top
+  const visibleCount = [11,12,15,16,23,24,27,28].filter(i => (landmarks[i]?.visibility || 0) > 0.5).length;
+  const quality = visibleCount / 8;
+  const barW = w - 16;
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fillRect(8, 4, barW, 6);
+  const qColor = quality > 0.75 ? '#10b981' : quality > 0.5 ? '#f59e0b' : '#ef4444';
+  ctx.fillStyle = qColor;
+  ctx.fillRect(8, 4, barW * quality, 6);
+
+  // Quality text
+  ctx.font = 'bold 8px Orbitron';
+  ctx.fillStyle = qColor;
+  ctx.fillText(quality > 0.75 ? 'TRACKING GOOD' : quality > 0.5 ? 'TRACKING OK' : 'ADJUST POSITION', 10, 18);
+}
+
+// ===================== CAMERA ONBOARDING =====================
+let onboardingShown = false;
+function showCameraOnboarding() {
+  if (onboardingShown) return;
+  onboardingShown = true;
+
+  // Create onboarding overlay on camera preview
+  const panel = document.getElementById('cameraFeedPanel');
+  if (!panel) return;
+
+  const guide = document.createElement('div');
+  guide.id = 'cameraOnboarding';
+  guide.style.cssText = 'position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(2,6,23,0.8);border-radius:14px;padding:12px;text-align:center;animation:fadeIn 0.5s ease;';
+  guide.innerHTML = `
+    <div style="font-family:Orbitron;font-size:10px;color:#38bdf8;letter-spacing:0.1em;margin-bottom:8px;">WEBCAM GUIDE</div>
+    <div style="font-size:11px;color:#cbd5e1;line-height:1.5;max-width:200px;">
+      <div style="margin-bottom:6px;">👋 <strong style="color:#38bdf8;">Stand back</strong> until you see your full body</div>
+      <div style="margin-bottom:6px;">🎯 <strong style="color:#10b981;">Green dots</strong> = body parts detected</div>
+      <div style="margin-bottom:6px;">🔴 <strong style="color:#ef4444;">Red dots</strong> = move into view</div>
+      <div style="margin-bottom:6px;">👊 <strong style="color:#fbbf24;">Punch forward</strong> to attack</div>
+      <div>🛡️ <strong style="color:#818cf8;">Hands up</strong> to guard</div>
+    </div>
+    <button onclick="this.parentElement.remove()" style="margin-top:10px;padding:6px 16px;background:rgba(56,189,248,0.2);border:1px solid rgba(56,189,248,0.4);border-radius:8px;color:#38bdf8;font-family:Orbitron;font-size:9px;cursor:pointer;letter-spacing:0.05em;">GOT IT</button>
+  `;
+  panel.appendChild(guide);
+
+  // Auto-dismiss after 8 seconds
+  setTimeout(() => { guide.remove(); }, 8000);
+}
+
 // ===================== CAMERA / MEDIAPIPE =====================
 let cameraInstance = null, poseInstance = null;
 let dualCamLandmarker = null;
@@ -1740,12 +1879,16 @@ async function initCamera() {
       throw new Error('MediaPipe Pose library not loaded');
     }
     poseInstance = new Pose({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}` });
-    poseInstance.setOptions({ modelComplexity: 1, smoothLandmarks: true, enableSegmentation: false, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+    poseInstance.setOptions({ modelComplexity: 1, smoothLandmarks: true, enableSegmentation: false, minDetectionConfidence: 0.6, minTrackingConfidence: 0.6 });
     poseInstance.onResults((results) => {
       pipCtx.save(); pipCtx.clearRect(0, 0, pipCanvas.width, pipCanvas.height);
       pipCtx.drawImage(results.image, 0, 0, pipCanvas.width, pipCanvas.height);
-      if (results.poseLandmarks) processPose(results.poseLandmarks);
-      else processPose(null);
+      if (results.poseLandmarks) {
+        drawSkeletonOverlay(pipCtx, results.poseLandmarks, pipCanvas.width, pipCanvas.height);
+        processPose(results.poseLandmarks);
+      } else {
+        processPose(null);
+      }
       pipCtx.restore();
     });
     cameraStream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: { ideal: cameraFacingMode } }, audio: false });
@@ -1763,6 +1906,8 @@ async function initCamera() {
     playerReadyForCombat = true;
     applyCameraPreviewState();
     updateGestureStatus('CAMERA ACTIVE — FACE THE LENS', 'text-emerald-400');
+    // Show onboarding guide for first-time users
+    showCameraOnboarding();
   } catch (error) {
     console.error('Camera failed', error);
     stopCameraStream();
