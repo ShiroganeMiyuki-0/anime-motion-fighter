@@ -113,19 +113,20 @@ canvas#fxCanvas{display:block;width:100%;height:100%;}
 /* ===== MOBILE TOUCH CONTROLS ===== */
 #touchControls{position:fixed;bottom:0;left:0;right:0;z-index:30;padding:12px 16px 20px;display:none;}
 #touchControls.active{display:flex;justify-content:space-between;align-items:flex-end;}
-.touch-dpad{display:grid;grid-template-columns:repeat(3,52px);grid-template-rows:repeat(3,52px);gap:4px;}
-.touch-btn{display:flex;align-items:center;justify-content:center;border-radius:12px;font-family:'Orbitron',sans-serif;font-size:10px;font-weight:700;letter-spacing:.05em;border:none;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:all .1s ease;}
+.touch-dpad{display:flex;flex-direction:column;gap:6px;}
+.touch-btn{display:flex;align-items:center;justify-content:center;border-radius:12px;font-family:'Orbitron',sans-serif;font-size:10px;font-weight:700;letter-spacing:.05em;border:none;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:all .1s ease;flex-direction:column;gap:2px;}
 .touch-btn:active{transform:scale(0.92);filter:brightness(1.3);}
-.touch-btn-dpad{background:rgba(30,41,59,.7);color:#94a3b8;border:1px solid rgba(148,163,184,.15);backdrop-filter:blur(8px);}
+.touch-btn-dpad{width:52px;height:52px;background:rgba(30,41,59,.7);color:#94a3b8;border:1px solid rgba(148,163,184,.15);backdrop-filter:blur(8px);}
 .touch-btn-dpad:active{background:rgba(56,189,248,.2);border-color:rgba(56,189,248,.4);color:#38bdf8;}
 .touch-action-group{display:flex;gap:8px;flex-direction:column;align-items:flex-end;}
-.touch-action-row{display:flex;gap:8px;}
+.touch-action-row{display:flex;gap:8px;align-items:flex-end;}
 .touch-btn-action{width:64px;height:64px;border-radius:50%;font-size:9px;backdrop-filter:blur(8px);}
 .touch-btn-punch{background:rgba(56,189,248,.2);color:#38bdf8;border:2px solid rgba(56,189,248,.4);}
 .touch-btn-kick{background:rgba(16,185,129,.2);color:#10b981;border:2px solid rgba(16,185,129,.4);}
 .touch-btn-guard{background:rgba(99,102,241,.2);color:#818cf8;border:2px solid rgba(99,102,241,.4);}
 .touch-btn-super{background:rgba(251,191,36,.2);color:#fbbf24;border:2px solid rgba(251,191,36,.4);width:72px;height:72px;font-size:10px;}
 .touch-btn-charge{background:rgba(245,158,11,.2);color:#f59e0b;border:2px solid rgba(245,158,11,.4);}
+.touch-label{font-size:8px;line-height:1;}
 
 /* ===== CAMERA FEED ===== */
 #cameraFeedPanel{position:absolute;bottom:12px;left:12px;width:min(35vw,300px);height:min(26vw,220px);min-width:200px;min-height:140px;background:rgba(2,6,23,.85);border-radius:14px;overflow:hidden;border:2px solid rgba(56,189,248,.3);backdrop-filter:blur(8px);z-index:20;opacity:0;pointer-events:none;transition:opacity .3s;box-shadow:0 0 20px rgba(56,189,248,.15);}
@@ -142,7 +143,7 @@ canvas#fxCanvas{display:block;width:100%;height:100%;}
 .help-card{background:rgba(15,23,42,.95);border:1px solid rgba(148,163,184,.15);border-radius:20px;max-width:520px;width:100%;max-height:80vh;overflow-y:auto;padding:28px;box-shadow:0 24px 60px rgba(0,0,0,.5);}
 
 /* ===== KEYBOARD CONTROLS DRAWER ===== */
-#keyboardDrawer{position:absolute;bottom:12px;right:12px;z-index:20;background:rgba(2,6,23,.9);border:1px solid rgba(148,163,184,.15);border-radius:14px;padding:12px;backdrop-filter:blur(12px);display:none;max-width:340px;}
+#keyboardDrawer{position:absolute;bottom:64px;right:12px;z-index:20;background:rgba(2,6,23,.9);border:1px solid rgba(148,163,184,.15);border-radius:14px;padding:12px;backdrop-filter:blur(12px);display:none;max-width:340px;}
 #keyboardDrawer.active{display:block;}
 
 /* ===== SCROLLBAR ===== */
@@ -169,6 +170,72 @@ canvas#fxCanvas{display:block;width:100%;height:100%;}
   .landing-title{font-size:clamp(28px,8vw,48px)!important;}
   .mode-card{border-radius:12px;}
 }
+
+/* ====== COMPACT MOBILE-LANDSCAPE MODE ======
+   Phone held sideways: very short viewport. The 3D canvas is the product,
+   so chrome (header, HUD, touch buttons) has to yield vertical space. */
+@media (max-height: 500px) and (orientation: landscape) {
+  /* Header shrinks and the labels drop; icons stay */
+  #gameContainer > header {
+    height: 38px !important;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+  #gameContainer > header h1 { font-size: 11px !important; }
+  #gameContainer > header p { display: none !important; }
+  #gameContainer > header .label-full { display: none !important; }
+  #gameContainer > header .label-short { display: inline !important; }
+  #gameContainer > header button { padding-top: 4px !important; padding-bottom: 4px !important; }
+
+  /* HUDs: tighter padding, smaller portrait, hide the per-HP '100/100' number */
+  .hud-panel { padding: 4px 8px !important; border-radius: 8px !important; }
+  .fighter-portrait { width: 28px !important; height: 36px !important; top: 2px !important; }
+  .fighter-portrait-p1 { left: 2px !important; }
+  .fighter-portrait-p2 { right: 2px !important; }
+  .hud-panel .pl-10, .hud-panel .sm\\:pl-12 { padding-left: 32px !important; }
+  .hud-panel .pr-10, .hud-panel .sm\\:pr-12 { padding-right: 32px !important; }
+  .hud-panel .hp-label { display: none !important; }
+  .hud-panel .pt-label { font-size: 9px !important; }
+
+  /* Round pips sit in the gap between the two HUDs, not over the canvas */
+  #roundPipsContainer { top: 44px !important; }
+
+  /* Camera feed becomes a small corner pip; show only when camera is on */
+  #cameraFeedPanel { width: 110px !important; height: 70px !important; min-width: 110px !important; min-height: 70px !important; }
+  #cameraFeedPanel .cam-meters { display: none !important; }
+
+  /* The bottom-center gesture status + bottom-right pause/mute are dropped —
+     the action zone and the touch bar own the bottom edge. */
+  #gestureStatusWrap { display: none !important; }
+  #gameContainer > main > .absolute.bottom-3.right-3 { display: none !important; }
+
+  /* Touch controls: one tight row across the bottom */
+  #touchControls {
+    padding: 4px 10px 6px !important;
+    align-items: center !important;
+  }
+  .touch-dpad {
+    flex-direction: row !important;
+    gap: 3px !important;
+  }
+  .touch-btn-dpad {
+    width: 38px !important; height: 38px !important;
+    font-size: 7px !important;
+  }
+  .touch-action-group {
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 4px !important;
+  }
+  .touch-action-row { flex-direction: row !important; gap: 4px !important; align-items: center !important; }
+  .touch-btn-action { width: 42px !important; height: 42px !important; font-size: 7px !important; }
+  .touch-btn-super { width: 50px !important; height: 50px !important; font-size: 8px !important; }
+  .touch-label { display: none !important; }
+}
+
+/* Show the "short" header labels only when compact-landscape is active.
+   On normal viewports the full labels are visible by default. */
+.label-short { display: none; }
 </style>
 </head>
 <body class="h-full overflow-hidden">
@@ -280,9 +347,9 @@ canvas#fxCanvas{display:block;width:100%;height:100%;}
       <!-- Settings (desktop) -->
       <details class="relative hidden md:block">
         <summary class="list-none cursor-pointer px-2.5 py-1.5 bg-slate-800/60 hover:bg-slate-700/60 rounded-lg border border-slate-700/50 text-[10px] font-orbitron text-slate-400 transition">
-          <i class="fa-solid fa-sliders mr-1"></i>SETTINGS
+          <i class="fa-solid fa-sliders mr-1"></i><span class="label-full">SETTINGS</span><span class="label-short">CFG</span>
         </summary>
-        <div class="absolute top-10 right-0 z-50 settings-panel p-4 w-[320px]">
+        <div class="absolute top-10 right-0 z-50 settings-panel p-4 w-[min(92vw,320px)]">
           <div class="grid grid-cols-2 gap-3">
             <label class="text-[10px] text-slate-400 font-orbitron">CAMERA
               <select id="cameraFacingSelect" onchange="changeCameraFacing(this.value)" class="settings-select mt-1 w-full"><option value="user">FRONT</option><option value="environment">BACK</option></select>
@@ -322,19 +389,25 @@ canvas#fxCanvas{display:block;width:100%;height:100%;}
       </button>
 
       <button onclick="openModeSelectModal()" class="px-2.5 py-1.5 bg-slate-800/60 hover:bg-slate-700/60 rounded-lg border border-slate-700/50 text-amber-400 text-[10px] font-orbitron transition">
-        <i class="fa-solid fa-users mr-1"></i><span class="hidden sm:inline">MODE</span>
+        <i class="fa-solid fa-users mr-1"></i><span class="label-full">MODE</span>
       </button>
       <button onclick="toggleKeyboardDrawer()" class="px-2.5 py-1.5 bg-slate-800/60 hover:bg-slate-700/60 rounded-lg border border-slate-700/50 text-cyan-400 text-[10px] font-orbitron transition" id="kbToggleBtn">
-        <i class="fa-solid fa-gamepad mr-1"></i><span class="hidden sm:inline">KEYS</span>
+        <i class="fa-solid fa-gamepad mr-1"></i><span class="label-full">KEYS</span>
       </button>
       <button id="startCamBtn" onclick="initCamera()" class="px-3 py-1.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-orbitron font-bold rounded-lg text-[10px] sm:text-xs shadow-lg transition">
-        <i class="fa-solid fa-video mr-1"></i>WEBCAM
+        <i class="fa-solid fa-video mr-1"></i><span class="label-full">WEBCAM</span>
       </button>
       <button onclick="startCalibration()" class="px-2.5 py-1.5 bg-slate-800/60 hover:bg-slate-700/60 rounded-lg border border-emerald-500/30 text-emerald-400 text-[10px] font-orbitron transition" id="calibBtn">
-        <i class="fa-solid fa-crosshairs mr-1"></i><span class="hidden sm:inline">CAL</span>
+        <i class="fa-solid fa-crosshairs mr-1"></i><span class="label-full">CAL</span>
       </button>
-      <button onclick="showHelpModal()" class="px-2 py-1.5 bg-slate-800/60 hover:bg-slate-700/60 rounded-lg border border-slate-700/50 text-slate-400 text-xs transition">
+      <button onclick="showHelpModal()" class="px-2 py-1.5 bg-slate-800/60 hover:bg-slate-700/60 rounded-lg border border-slate-700/50 text-slate-400 text-xs transition" title="How to play">
         <i class="fa-solid fa-circle-question"></i>
+      </button>
+      <button onclick="togglePause()" class="px-2 py-1.5 bg-slate-800/60 hover:bg-slate-700/60 rounded-lg border border-slate-700/50 text-slate-400 text-xs md:hidden" title="Pause" id="headerPauseBtn">
+        <i class="fa-solid fa-pause"></i>
+      </button>
+      <button onclick="toggleMute()" class="px-2 py-1.5 bg-slate-800/60 hover:bg-slate-700/60 rounded-lg border border-slate-700/50 text-slate-400 text-xs md:hidden" title="Mute" id="headerMuteBtn">
+        <i class="fa-solid fa-volume-high"></i>
       </button>
     </div>
   </header>
@@ -398,7 +471,7 @@ canvas#fxCanvas{display:block;width:100%;height:100%;}
       <div class="hud-panel p-2 sm:p-2.5 relative">
         <img id="p1Portrait" class="fighter-portrait fighter-portrait-p1" data-state="ready" src="assets/motion-duel-cyan.png" alt="P1 fighter">
         <div class="flex justify-between items-center mb-1 pl-10 sm:pl-12">
-          <span class="font-orbitron text-[10px] sm:text-xs font-bold text-cyan-400 truncate"><i class="fa-solid fa-user text-cyan-500 mr-1"></i><span id="p1NameText">P1: G.ONE</span></span>
+          <span class="font-orbitron text-[10px] sm:text-xs font-bold text-cyan-400 truncate pt-label"><i class="fa-solid fa-user text-cyan-500 mr-1"></i><span id="p1NameText">P1: G.ONE</span></span>
           <span class="font-orbitron text-[9px] text-amber-400 flex-shrink-0">PTS <b id="playerScoreText">0</b></span>
         </div>
         <div class="hp-bar-track mb-1">
@@ -411,7 +484,7 @@ canvas#fxCanvas{display:block;width:100%;height:100%;}
         <div class="ki-bar-track">
           <div id="playerKiBar" class="ki-bar-fill bg-gradient-to-r from-amber-500 to-cyan-400 w-0"></div>
         </div>
-        <div class="text-[9px] font-inter text-slate-500 mt-1" id="playerHpLabel">100 / 100</div>
+        <div class="text-[9px] font-inter text-slate-500 mt-1 hp-label" id="playerHpLabel">100 / 100</div>
       </div>
     </div>
 
@@ -421,7 +494,7 @@ canvas#fxCanvas{display:block;width:100%;height:100%;}
         <img id="p2Portrait" class="fighter-portrait fighter-portrait-p2" data-state="ready" src="assets/motion-duel-crimson.png" alt="P2 fighter">
         <div class="flex justify-between items-center mb-1 pr-10 sm:pr-12">
           <span class="font-orbitron text-[9px] text-amber-400 flex-shrink-0">PTS <b id="aiScoreText">0</b></span>
-          <span class="font-orbitron text-[10px] sm:text-xs font-bold text-rose-400 truncate text-right"><span id="p2NameText">RA.ONE (AI)</span><i class="fa-solid fa-skull text-rose-500 ml-1"></i></span>
+          <span class="font-orbitron text-[10px] sm:text-xs font-bold text-rose-400 truncate text-right pt-label"><span id="p2NameText">RA.ONE (AI)</span><i class="fa-solid fa-skull text-rose-500 ml-1"></i></span>
         </div>
         <div class="hp-bar-track mb-1">
           <div id="aiHpBar" class="hp-bar-fill bg-gradient-to-r from-rose-600 to-amber-500 w-full"></div>
@@ -433,7 +506,7 @@ canvas#fxCanvas{display:block;width:100%;height:100%;}
         <div class="ki-bar-track">
           <div id="aiKiBar" class="ki-bar-fill bg-gradient-to-r from-rose-600 to-orange-400 w-0"></div>
         </div>
-        <div class="text-[9px] font-inter text-slate-500 mt-1 text-right" id="aiHpLabel">100 / 100</div>
+        <div class="text-[9px] font-inter text-slate-500 mt-1 text-right hp-label" id="aiHpLabel">100 / 100</div>
       </div>
     </div>
 
@@ -454,7 +527,7 @@ canvas#fxCanvas{display:block;width:100%;height:100%;}
       <div class="absolute bottom-1 left-1.5 right-1.5 flex justify-between items-center text-[8px] font-orbitron text-slate-400 bg-black/70 px-1.5 py-0.5 rounded">
         <span>VEL:</span><span id="speedMetric" class="text-amber-400 font-bold">0.00</span>
       </div>
-      <div class="absolute bottom-7 left-1.5 right-1.5 text-[7px] font-orbitron text-slate-500 bg-black/60 px-1 py-0.5 rounded">
+      <div class="cam-meters absolute bottom-7 left-1.5 right-1.5 text-[7px] font-orbitron text-slate-500 bg-black/60 px-1 py-0.5 rounded">
         <div class="flex items-center gap-1">
           <span class="text-cyan-400">PUNCH</span>
           <div class="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
@@ -471,8 +544,8 @@ canvas#fxCanvas{display:block;width:100%;height:100%;}
       </div>
     </div>
 
-    <!-- Bottom controls -->
-    <div class="absolute bottom-3 right-3 z-20 flex gap-1.5">
+    <!-- Bottom controls (desktop only — on mobile these ride in the header) -->
+    <div class="absolute bottom-3 right-3 z-20 gap-1.5 hidden md:flex">
       <button onclick="togglePause()" id="pauseBtn" class="w-9 h-9 bg-slate-900/80 hover:bg-slate-800 border border-slate-700/50 rounded-lg text-xs font-orbitron text-slate-400 backdrop-blur flex items-center justify-center transition">
         <i class="fa-solid fa-pause"></i>
       </button>
@@ -510,28 +583,20 @@ canvas#fxCanvas{display:block;width:100%;height:100%;}
   <!-- Mobile Touch Controls -->
   <div id="touchControls">
     <div class="touch-dpad">
-      <div></div>
-      <button class="touch-btn touch-btn-dpad" ontouchstart="triggerManualAction(1,'CHARGE')" onmousedown="triggerManualAction(1,'CHARGE')"><i class="fa-solid fa-bolt text-xs"></i></button>
-      <div></div>
-      <button class="touch-btn touch-btn-dpad" ontouchstart="triggerManualAction(1,'DUCK')" onmousedown="triggerManualAction(1,'DUCK')"><i class="fa-solid fa-arrow-down text-xs"></i></button>
-      <div></div>
-      <button class="touch-btn touch-btn-dpad" ontouchstart="triggerManualAction(1,'GUARD')" onmousedown="triggerManualAction(1,'GUARD')"><i class="fa-solid fa-shield text-xs"></i></button>
-      <div></div>
-      <div></div>
-      <div></div>
+      <button class="touch-btn touch-btn-dpad" ontouchstart="triggerManualAction(1,'CHARGE')" onmousedown="triggerManualAction(1,'CHARGE')" aria-label="Charge"><i class="fa-solid fa-bolt text-xs"></i></button>
+      <button class="touch-btn touch-btn-dpad" ontouchstart="triggerManualAction(1,'DUCK')" onmousedown="triggerManualAction(1,'DUCK')" aria-label="Duck"><i class="fa-solid fa-arrow-down text-xs"></i></button>
+      <button class="touch-btn touch-btn-dpad" ontouchstart="triggerManualAction(1,'GUARD')" onmousedown="triggerManualAction(1,'GUARD')" aria-label="Guard"><i class="fa-solid fa-shield text-xs"></i></button>
     </div>
     <div class="touch-action-group">
       <div class="touch-action-row">
-        <button class="touch-btn touch-btn-super" ontouchstart="triggerManualAction(1,'SUPER')" onmousedown="triggerManualAction(1,'SUPER')">
-          <i class="fa-solid fa-bolt text-lg"></i><br>SUPER
+        <button class="touch-btn touch-btn-punch" ontouchstart="triggerManualAction(1,'PUNCH')" onmousedown="triggerManualAction(1,'PUNCH')" aria-label="Punch">
+          <i class="fa-solid fa-hand-fist text-lg"></i><span class="touch-label">PUNCH</span>
         </button>
-      </div>
-      <div class="touch-action-row">
-        <button class="touch-btn touch-btn-punch" ontouchstart="triggerManualAction(1,'PUNCH')" onmousedown="triggerManualAction(1,'PUNCH')">
-          <i class="fa-solid fa-hand-fist text-lg"></i><br>PUNCH
+        <button class="touch-btn touch-btn-kick" ontouchstart="triggerManualAction(1,'KICK')" onmousedown="triggerManualAction(1,'KICK')" aria-label="Kick">
+          <i class="fa-solid fa-shoe-prints text-lg"></i><span class="touch-label">KICK</span>
         </button>
-        <button class="touch-btn touch-btn-kick" ontouchstart="triggerManualAction(1,'KICK')" onmousedown="triggerManualAction(1,'KICK')">
-          <i class="fa-solid fa-shoe-prints text-lg"></i><br>KICK
+        <button class="touch-btn touch-btn-super" ontouchstart="triggerManualAction(1,'SUPER')" onmousedown="triggerManualAction(1,'SUPER')" aria-label="Super">
+          <i class="fa-solid fa-bolt text-lg"></i><span class="touch-label">SUPER</span>
         </button>
       </div>
     </div>
