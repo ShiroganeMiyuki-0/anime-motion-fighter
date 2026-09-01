@@ -596,19 +596,19 @@ canvas#fxCanvas{display:block;width:100%;height:100%;}
   <!-- Mobile Touch Controls -->
   <div id="touchControls">
     <div class="touch-dpad">
-      <button class="touch-btn touch-btn-dpad" ontouchstart="triggerManualAction(1,'CHARGE')" onmousedown="triggerManualAction(1,'CHARGE')" aria-label="Charge"><i class="fa-solid fa-bolt text-xs"></i></button>
-      <button class="touch-btn touch-btn-dpad" ontouchstart="triggerManualAction(1,'DUCK')" onmousedown="triggerManualAction(1,'DUCK')" aria-label="Duck"><i class="fa-solid fa-arrow-down text-xs"></i></button>
-      <button class="touch-btn touch-btn-dpad" ontouchstart="triggerManualAction(1,'GUARD')" onmousedown="triggerManualAction(1,'GUARD')" aria-label="Guard"><i class="fa-solid fa-shield text-xs"></i></button>
+      <button class="touch-btn touch-btn-dpad" onpointerdown="triggerManualAction(1,'CHARGE')" aria-label="Charge"><i class="fa-solid fa-bolt text-xs"></i></button>
+      <button class="touch-btn touch-btn-dpad" onpointerdown="triggerManualAction(1,'DUCK')" aria-label="Duck"><i class="fa-solid fa-arrow-down text-xs"></i></button>
+      <button class="touch-btn touch-btn-dpad" onpointerdown="triggerManualAction(1,'GUARD')" aria-label="Guard"><i class="fa-solid fa-shield text-xs"></i></button>
     </div>
     <div class="touch-action-group">
       <div class="touch-action-row">
-        <button class="touch-btn touch-btn-punch" ontouchstart="triggerManualAction(1,'PUNCH')" onmousedown="triggerManualAction(1,'PUNCH')" aria-label="Punch">
+        <button class="touch-btn touch-btn-punch" onpointerdown="triggerManualAction(1,'PUNCH')" aria-label="Punch">
           <i class="fa-solid fa-hand-fist text-lg"></i><span class="touch-label">PUNCH</span>
         </button>
-        <button class="touch-btn touch-btn-kick" ontouchstart="triggerManualAction(1,'KICK')" onmousedown="triggerManualAction(1,'KICK')" aria-label="Kick">
+        <button class="touch-btn touch-btn-kick" onpointerdown="triggerManualAction(1,'KICK')" aria-label="Kick">
           <i class="fa-solid fa-shoe-prints text-lg"></i><span class="touch-label">KICK</span>
         </button>
-        <button class="touch-btn touch-btn-super" ontouchstart="triggerManualAction(1,'SUPER')" onmousedown="triggerManualAction(1,'SUPER')" aria-label="Super">
+        <button class="touch-btn touch-btn-super" onpointerdown="triggerManualAction(1,'SUPER')" aria-label="Super">
           <i class="fa-solid fa-bolt text-lg"></i><span class="touch-label">SUPER</span>
         </button>
       </div>
@@ -2221,6 +2221,7 @@ async function initCamera() {
   if (camBtn) { camBtn.dataset.loading = 'true'; camBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i><span class="label-full">LOADING...</span>'; }
   if (selectedGameMode === 'CAM2P') { try { await initDualCamera(); } finally { if (camBtn) { camBtn.dataset.loading = 'false'; camBtn.innerHTML = '<i class="fa-solid fa-video mr-1"></i><span class="label-full">WEBCAM</span>'; } } return; }
   if (!navigator.mediaDevices?.getUserMedia) {
+    if (camBtn) { camBtn.dataset.loading = 'false'; camBtn.innerHTML = '<i class="fa-solid fa-video mr-1"></i><span class="label-full">WEBCAM</span>'; }
     updateGestureStatus('WEBCAM UNAVAILABLE — USE TOUCH/KEYBOARD', 'text-rose-400');
     showCameraError('This browser does not support webcam access. Use Chrome, Edge, or Firefox on desktop, or switch to keyboard/touch controls.');
     return;
@@ -2454,7 +2455,7 @@ window.addEventListener('keydown', (e) => {
     if (gameState === 'PLAYING' || gameState === 'PAUSED') { e.preventDefault(); togglePause(); }
     return;
   }
-  if (gameState !== 'PLAYING' || isTyping) return;
+  if (gameState !== 'PLAYING' || isTyping || e.repeat) return;
   const k = e.key.toLowerCase();
   if (k === 'j') triggerManualAction(1, 'PUNCH');
   if (k === 'i') triggerManualAction(1, 'KICK');
