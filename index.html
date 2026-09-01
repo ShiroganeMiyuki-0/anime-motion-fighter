@@ -373,23 +373,26 @@
       /* ===== COMBAT FEEDBACK ===== */
       #combatPhaseDisplay {
         position: absolute;
-        top: 50%;
+        top: 45%;
         left: 50%;
         transform: translate(-50%, -50%);
         text-align: center;
         pointer-events: none;
         z-index: 20;
+        width: 100%;
+        max-width: 500px;
       }
       .phase-text {
         font-family: "Orbitron", sans-serif;
         font-weight: 900;
-        font-size: clamp(20px, 4vw, 42px);
+        font-size: clamp(18px, 3.5vw, 36px);
         letter-spacing: 0.1em;
         text-transform: uppercase;
         opacity: 0;
         transform: scale(0.8);
-        transition: all 0.2s ease-out;
+        transition: all 0.18s ease-out;
         text-shadow: 0 0 30px currentColor;
+        padding: 0 10px;
       }
       .phase-text.active {
         opacity: 1;
@@ -397,14 +400,27 @@
       }
       .phase-sub {
         font-family: "Rajdhani", sans-serif;
-        font-size: clamp(10px, 1.5vw, 14px);
+        font-size: clamp(9px, 1.3vw, 12px);
         color: #94a3b8;
         margin-top: 4px;
         opacity: 0;
-        transition: opacity 0.3s;
+        transition: opacity 0.25s;
+        padding: 0 15px;
       }
       .phase-sub.active {
         opacity: 1;
+      }
+      /* Prevent phase display from overlapping HUD on small screens */
+      @media (max-width: 640px) {
+        #combatPhaseDisplay {
+          top: 40%;
+        }
+        .phase-text {
+          font-size: clamp(16px, 3vw, 28px);
+        }
+        .phase-sub {
+          font-size: clamp(8px, 1.2vw, 10px);
+        }
       }
 
       #hitFlash {
@@ -732,6 +748,22 @@
         opacity: 1;
         pointer-events: auto;
       }
+      /* Camera feed - hide on very small screens to prevent overlap */
+      @media (max-width: 480px) {
+        #cameraFeedPanel {
+          width: min(40vw, 180px) !important;
+          height: min(30vw, 135px) !important;
+          min-width: 120px !important;
+          min-height: 90px !important;
+          bottom: 8px !important;
+          left: 8px !important;
+        }
+      }
+      /* Hide camera feed during combat phase display for clarity */
+      #cameraFeedPanel.combat-hidden {
+        opacity: 0.3;
+        transform: scale(0.95);
+      }
 
       /* ===== SETTINGS PANEL ===== */
       .settings-panel {
@@ -864,23 +896,37 @@
       @media (max-width: 768px) {
         .hud-panel {
           border-radius: 8px;
+          padding: 10px !important;
         }
         .fighter-portrait {
-          width: 32px;
-          height: 44px;
-          top: 4px;
+          width: 28px;
+          height: 38px;
+          top: 3px;
         }
         .fighter-portrait-p1 {
-          left: 4px;
+          left: 3px;
         }
         .fighter-portrait-p2 {
-          right: 4px;
+          right: 3px;
         }
         #cameraFeedPanel {
           width: min(32vw, 180px);
           height: min(24vw, 130px);
           min-width: 120px;
           min-height: 80px;
+          bottom: 8px !important;
+          left: 8px !important;
+        }
+        /* Adjust combat phase for mobile */
+        #combatPhaseDisplay {
+          top: 38% !important;
+        }
+        /* Smaller HP bars on mobile */
+        .hp-bar-track {
+          height: 6px !important;
+        }
+        .ki-bar-track {
+          height: 4px !important;
         }
       }
       @media (max-width: 480px) {
@@ -889,6 +935,17 @@
         }
         .mode-card {
           border-radius: 12px;
+        }
+        /* Extra small screens - compact everything */
+        .hud-panel {
+          padding: 8px !important;
+        }
+        .fighter-portrait {
+          width: 24px !important;
+          height: 32px !important;
+        }
+        #gestureStatusWrap {
+          bottom: 22vw !important;
         }
       }
     </style>
@@ -1326,7 +1383,7 @@
         <div
           class="absolute top-2 left-2 right-[52%] sm:right-[52%] z-20 pointer-events-none"
         >
-          <div class="hud-panel p-2 sm:p-2.5 relative">
+          <div class="hud-panel p-1.5 sm:p-2 relative">
             <img
               id="p1Portrait"
               class="fighter-portrait fighter-portrait-p1"
@@ -1334,18 +1391,18 @@
               src="assets/motion-duel-cyan.png"
               alt="P1 fighter"
             />
-            <div class="flex justify-between items-center mb-1 pl-10 sm:pl-12">
+            <div class="flex justify-between items-center mb-0.5 pl-8 sm:pl-10">
               <span
-                class="font-orbitron text-[10px] sm:text-xs font-bold text-cyan-400 truncate"
+                class="font-orbitron text-[9px] sm:text-xs font-bold text-cyan-400 truncate"
                 ><i class="fa-solid fa-user text-cyan-500 mr-1"></i
                 ><span id="p1NameText">P1: G.ONE</span></span
               >
               <span
-                class="font-orbitron text-[9px] text-amber-400 flex-shrink-0"
+                class="font-orbitron text-[8px] sm:text-[9px] text-amber-400 flex-shrink-0"
                 >PTS <b id="playerScoreText">0</b></span
               >
             </div>
-            <div class="hp-bar-track mb-1">
+            <div class="hp-bar-track mb-0.5" style="height: 8px;">
               <div
                 id="playerHpBar"
                 class="hp-bar-fill bg-gradient-to-r from-cyan-500 to-emerald-400 w-full"
@@ -1353,23 +1410,23 @@
             </div>
             <div class="flex justify-between items-center mb-0.5">
               <span
-                class="text-[9px] font-orbitron text-cyan-500 font-bold tracking-wider"
+                class="text-[8px] sm:text-[9px] font-orbitron text-cyan-500 font-bold tracking-wider"
                 ><i class="fa-solid fa-bolt text-amber-400 mr-0.5"></i>KI</span
               >
               <span
                 id="playerKiText"
-                class="text-[9px] font-orbitron text-amber-400"
+                class="text-[8px] sm:text-[9px] font-orbitron text-amber-400"
                 >0%</span
               >
             </div>
-            <div class="ki-bar-track">
+            <div class="ki-bar-track" style="height: 5px;">
               <div
                 id="playerKiBar"
                 class="ki-bar-fill bg-gradient-to-r from-amber-500 to-cyan-400 w-0"
               ></div>
             </div>
             <div
-              class="text-[9px] font-inter text-slate-500 mt-1"
+              class="text-[8px] sm:text-[9px] font-inter text-slate-500 mt-0.5"
               id="playerHpLabel"
             >
               100 / 100
@@ -1381,7 +1438,7 @@
         <div
           class="absolute top-2 left-[52%] sm:left-[52%] right-2 z-20 pointer-events-none"
         >
-          <div class="hud-panel p-2 sm:p-2.5 relative">
+          <div class="hud-panel p-1.5 sm:p-2 relative">
             <img
               id="p2Portrait"
               class="fighter-portrait fighter-portrait-p2"
@@ -1389,40 +1446,40 @@
               src="assets/motion-duel-crimson.png"
               alt="P2 fighter"
             />
-            <div class="flex justify-between items-center mb-1 pr-10 sm:pr-12">
+            <div class="flex justify-between items-center mb-0.5 pr-8 sm:pr-10">
               <span
-                class="font-orbitron text-[9px] text-amber-400 flex-shrink-0"
+                class="font-orbitron text-[8px] sm:text-[9px] text-amber-400 flex-shrink-0"
                 >PTS <b id="aiScoreText">0</b></span
               >
               <span
-                class="font-orbitron text-[10px] sm:text-xs font-bold text-rose-400 truncate text-right"
+                class="font-orbitron text-[9px] sm:text-xs font-bold text-rose-400 truncate text-right"
                 ><span id="p2NameText">RA.ONE (AI)</span
                 ><i class="fa-solid fa-skull text-rose-500 ml-1"></i
               ></span>
             </div>
-            <div class="hp-bar-track mb-1">
+            <div class="hp-bar-track mb-0.5" style="height: 8px;">
               <div
                 id="aiHpBar"
                 class="hp-bar-fill bg-gradient-to-r from-rose-600 to-amber-500 w-full"
               ></div>
             </div>
             <div class="flex justify-between items-center mb-0.5">
-              <span id="aiKiText" class="text-[9px] font-orbitron text-rose-400"
+              <span id="aiKiText" class="text-[8px] sm:text-[9px] font-orbitron text-rose-400"
                 >0%</span
               >
               <span
-                class="text-[9px] font-orbitron text-rose-500 font-bold tracking-wider"
+                class="text-[8px] sm:text-[9px] font-orbitron text-rose-500 font-bold tracking-wider"
                 >KI OVERDRIVE</span
               >
             </div>
-            <div class="ki-bar-track">
+            <div class="ki-bar-track" style="height: 5px;">
               <div
                 id="aiKiBar"
                 class="ki-bar-fill bg-gradient-to-r from-rose-600 to-orange-400 w-0"
               ></div>
             </div>
             <div
-              class="text-[9px] font-inter text-slate-500 mt-1 text-right"
+              class="text-[8px] sm:text-[9px] font-inter text-slate-500 mt-0.5 text-right"
               id="aiHpLabel"
             >
               100 / 100
@@ -1430,20 +1487,20 @@
           </div>
         </div>
 
-        <!-- Gesture Status (bottom center) -->
+        <!-- Gesture Status (bottom center, above camera feed) -->
         <div
-          class="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 pointer-events-none text-center"
+          class="absolute bottom-28 sm:bottom-32 left-1/2 -translate-x-1/2 z-20 pointer-events-none text-center"
           id="gestureStatusWrap"
         >
           <div
             id="gestureStatus"
-            class="font-orbitron text-[10px] sm:text-xs font-bold text-amber-300 bg-slate-900/90 border border-amber-500/30 px-4 py-1.5 rounded-full uppercase tracking-wider backdrop-blur inline-block"
+            class="font-orbitron text-[9px] sm:text-xs font-bold text-amber-300 bg-slate-900/90 border border-amber-500/30 px-3 py-1.2 rounded-full uppercase tracking-wider backdrop-blur inline-block max-w-[90vw]"
           >
             STAND IN VIEW
           </div>
           <div
             id="combatReason"
-            class="hidden max-w-[280px] text-[9px] sm:text-[10px] text-slate-400 bg-slate-950/80 border border-slate-700/50 px-3 py-1 rounded-lg mt-1.5 leading-relaxed font-inter mx-auto"
+            class="hidden max-w-[260px] sm:max-w-[280px] text-[8px] sm:text-[10px] text-slate-400 bg-slate-950/80 border border-slate-700/50 px-2.5 py-0.75 rounded-lg mt-1 leading-relaxed font-inter mx-auto"
           ></div>
         </div>
 
@@ -2005,7 +2062,7 @@
         /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent) ||
         window.innerWidth <= 768;
 
-      // Pose tracking
+      // Pose tracking - improved for better accuracy
       let livePoseLandmarks = null,
         liveVisible = false;
       let trackingLossFrames = 0;
@@ -2023,7 +2080,7 @@
         p2LimbCooldown = { LW: 0, RW: 0, LA: 0, RA: 0 };
       let p1PhysicalHitCooldown = 0; // now in ms
       let poseStateFrames = { READY: 0, GUARD: 0, CHARGE: 0, CROUCH: 0 }; // debouncing
-      const POSE_DEBOUNCE_FRAMES = 3; // require 3 consistent frames before accepting pose change
+      const POSE_DEBOUNCE_FRAMES = 2; // reduced to 2 for faster response (was 3)
       let prevWristL = null,
         prevWristR = null,
         prevAnkleL = null,
@@ -2208,23 +2265,33 @@
 
       // ===================== SMOOTHING =====================
       class LandmarkSmoother {
-        constructor(alpha = 0.55) {
+        constructor(alpha = 0.65) {
           this.alpha = alpha;
           this.prev = null;
+          this.velocity = null;
         }
         filter(lm) {
           if (!lm) return null;
           if (!this.prev || this.prev.length !== lm.length) {
             this.prev = lm.map((l) => ({ ...l }));
+            this.velocity = new Array(lm.length).fill(null);
             return this.prev;
           }
           const s = lm.map((l, i) => {
             const p = this.prev[i];
+            // One euro filter inspired approach - adaptive smoothing based on velocity
+            const rawVel = Math.hypot(l.x - p.x, l.y - p.y, (l.z || 0) - (p.z || 0));
+            const prevVel = this.velocity[i] || rawVel;
+            // Smooth velocity
+            const smoothedVel = 0.7 * prevVel + 0.3 * rawVel;
+            this.velocity[i] = smoothedVel;
+            // Adaptive alpha: less smoothing when moving fast (preserves quick gestures)
+            const dynamicAlpha = Math.min(0.85, Math.max(0.5, 0.65 + smoothedVel * 2));
             return {
               ...l,
-              x: this.alpha * l.x + (1 - this.alpha) * p.x,
-              y: this.alpha * l.y + (1 - this.alpha) * p.y,
-              z: this.alpha * l.z + (1 - this.alpha) * p.z,
+              x: dynamicAlpha * l.x + (1 - dynamicAlpha) * p.x,
+              y: dynamicAlpha * l.y + (1 - dynamicAlpha) * p.y,
+              z: dynamicAlpha * l.z + (1 - dynamicAlpha) * p.z,
               visibility: l.visibility,
             };
           });
@@ -2232,7 +2299,7 @@
           return s;
         }
       }
-      const smoother = new LandmarkSmoother(0.75);
+      const smoother = new LandmarkSmoother(0.65);
       const p2Smoother = new LandmarkSmoother(0.55);
 
       function lerp(a, b, t) {
@@ -2987,16 +3054,16 @@
         const prevHandReachR = prevWristR ? ptDist3(prevWristR, shoulderR) : 0;
         const prevFootReachL = prevAnkleL ? ptDist3(prevAnkleL, hipL) : 0;
         const prevFootReachR = prevAnkleR ? ptDist3(prevAnkleR, hipR) : 0;
-        // Scale extension thresholds by distance
-        const extThreshold = 0.006 / distScale;
+        // Scale extension thresholds by distance - more forgiving for beginners
+        const extThreshold = 0.005 / distScale;
         const handExtending =
           handReachL - prevHandReachL > extThreshold ||
           handReachR - prevHandReachR > extThreshold;
         const footExtending =
           footReachL - prevFootReachL > extThreshold ||
           footReachR - prevFootReachR > extThreshold;
-        const handExtended = handReach > 0.18 / distScale,
-          footExtended = footReach > 0.24 / distScale;
+        const handExtended = handReach > 0.16 / distScale,
+          footExtended = footReach > 0.22 / distScale;
 
         prevWristL = wrists[0];
         prevWristR = wrists[1];
@@ -3030,17 +3097,17 @@
         const shoulderCenterY = (shoulderL.y + shoulderR.y) / 2;
         const hipCenterY = (hipL.y + hipR.y) / 2;
         const wristCenterY = (wrists[0].y + wrists[1].y) / 2;
-        // Guard: at least ONE hand raised above shoulder level (more forgiving)
+        // Guard: at least ONE hand raised above shoulder level (more forgiving for beginners)
         const guardPose =
-          wrists[0].y < shoulderL.y - 0.03 || wrists[1].y < shoulderR.y - 0.03;
-        // Charge: hands close together, between chest and belly
+          wrists[0].y < shoulderL.y - 0.02 || wrists[1].y < shoulderR.y - 0.02;
+        // Charge: hands close together, between chest and belly (relaxed threshold)
         const chargePose =
           !guardPose &&
-          ptDist3(wrists[0], wrists[1]) < 0.25 &&
-          wristCenterY > shoulderCenterY + 0.04 &&
-          wristCenterY < hipCenterY + 0.2;
-        // Crouch: hips much lower than shoulders (squatting)
-        const crouchPose = hipCenterY - shoulderCenterY > 0.26;
+          ptDist3(wrists[0], wrists[1]) < 0.28 &&
+          wristCenterY > shoulderCenterY + 0.03 &&
+          wristCenterY < hipCenterY + 0.22;
+        // Crouch: hips much lower than shoulders (squatting) - easier to trigger
+        const crouchPose = hipCenterY - shoulderCenterY > 0.22;
 
         // Debounced pose state detection — require consistent pose for POSE_DEBOUNCE_FRAMES
         poseStateFrames.GUARD = guardPose ? poseStateFrames.GUARD + 1 : 0;
@@ -3116,13 +3183,13 @@
         }
 
         // Velocity thresholds — scaled by distance from camera
-        // Lower base threshold = easier to trigger attacks
-        const velThreshold = (sensitivityThreshold * 20) / distScale;
+        // Lower base threshold = easier to trigger attacks (beginner-friendly)
+        const velThreshold = (sensitivityThreshold * 16) / distScale;
         if (
-          footVelocity > velThreshold * 0.8 &&
+          footVelocity > velThreshold * 0.75 &&
           footExtended &&
           footExtending &&
-          now - player.lastGestureTime > 360
+          now - player.lastGestureTime > 320
         ) {
           player.lastGestureTime = now;
           player.stance = "KICK";
@@ -3135,7 +3202,7 @@
           handVelocity > velThreshold &&
           handExtended &&
           handExtending &&
-          now - player.lastGestureTime > 300
+          now - player.lastGestureTime > 260
         ) {
           player.lastGestureTime = now;
           player.stance = "PUNCH";
@@ -4395,11 +4462,12 @@
               `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`,
           });
           poseInstance.setOptions({
-            modelComplexity: 1,
+            modelComplexity: 1, // balanced accuracy/performance
             smoothLandmarks: true,
             enableSegmentation: false,
-            minDetectionConfidence: 0.6,
-            minTrackingConfidence: 0.6,
+            minDetectionConfidence: 0.7, // higher confidence for better accuracy
+            minTrackingConfidence: 0.7, // higher tracking confidence
+            smoothSegmentation: false,
           });
           poseInstance.onResults((results) => {
             pipCtx.save();
@@ -4504,6 +4572,9 @@
               },
               runningMode: "VIDEO",
               numPoses: 2,
+              minPoseDetectionConfidence: 0.7, // higher confidence
+              minPosePresenceConfidence: 0.7, // higher presence confidence
+              minTrackingConfidence: 0.7, // better tracking
             },
           );
           dualCamRunning = true;
