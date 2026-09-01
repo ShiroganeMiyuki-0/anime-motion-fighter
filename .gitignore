@@ -1,3 +1,8 @@
+```
+# Dependencies
 node_modules/
-.DS_Store
-*.log
+# Environment
+.env
+.env.local
+.env.*
+```
