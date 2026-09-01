@@ -2290,6 +2290,9 @@
           // Track stability for adaptive filtering
           this.stabilityScore = 1.0;
           this.frameCount = 0;
+          // Hysteresis buffer for range detection
+          this.rangeBuffer = [];
+          this.maxRangeBuffer = 3;
         }
         filter(lm) {
           if (!lm) return null;
@@ -2297,6 +2300,7 @@
             this.prev = lm.map((l) => ({ ...l }));
             this.velocity = new Array(lm.length).fill(0);
             this.stabilityScore = 1.0;
+            this.rangeBuffer = [];
             return this.prev;
           }
           
@@ -2336,11 +2340,19 @@
           return s;
         }
         
+        // Get averaged shoulder width for hysteresis-based range detection
+        getAverageShoulderWidth() {
+          if (this.rangeBuffer.length === 0) return 0.18;
+          const sum = this.rangeBuffer.reduce((a, b) => a + b, 0);
+          return sum / this.rangeBuffer.length;
+        }
+
         // Reset smoother when tracking is lost
         reset() {
           this.prev = null;
           this.velocity = null;
           this.stabilityScore = 1.0;
+          this.rangeBuffer = [];
         }
       }
       const smoother = new LandmarkSmoother(0.7);
@@ -3032,15 +3044,22 @@
           lastPoseFrameAt = 0;
           lastValidPoseAt = 0;
           lastChargeToneAt = 0;
-          smoother.reset(); // Proper reset with stability tracking
-          if (gameState === "PLAYING" && !roundLocked)
+          trackingLossFrames++;
+          
+          // Grace period: don't show tracking lost immediately (first 5 frames)
+          if (trackingLossFrames > 5 && gameState === "PLAYING" && !roundLocked) {
             setCombatPhase(
               "TRACKING",
               "TRACKING LOST — STEP INTO FRAME",
               "text-amber-400",
             );
+          }
+          smoother.reset(); // Proper reset with stability tracking
           return;
         }
+        
+        // Reset tracking loss counter when landmarks are regained
+        trackingLossFrames = 0;
 
         const smoothed = smoother.filter(landmarks);
         livePoseLandmarks = smoothed;
@@ -4423,26 +4442,33 @@
           return null;
         const shoulderL = livePoseLandmarks[11],
           shoulderR = livePoseLandmarks[12];
-        const shoulderWidth = Math.abs(shoulderL.x - shoulderR.x);
+        
+        // Use hysteresis-buffered shoulder width for stable range detection
+        const avgShoulderWidth = smoother.getAverageShoulderWidth();
+        const instantWidth = Math.abs(shoulderL.x - shoulderR.x);
+        
+        // Blend instant and averaged width (70% instant, 30% averaged) for responsive but stable detection
+        let shoulderWidth = (instantWidth * 0.7) + (avgShoulderWidth * 0.3);
         
         // Account for body angle - sideways stance appears narrower
         const angleCorrection = Math.abs(bodyAngle) > 0.3 ? 1.4 : 1.0;
         const correctedWidth = shoulderWidth * angleCorrection;
         
-        // Shoulder width < 0.08 means too far away, > 0.35 means too close
-        if (correctedWidth < 0.08)
+        // Hysteresis thresholds: different boundaries for approaching vs retreating
+        // Prevents rapid switching between "GOOD RANGE" and "AT RANGE" states
+        if (correctedWidth < 0.075)
           return {
             status: "TOO FAR",
             color: "text-rose-400",
             icon: "fa-arrow-left",
           };
-        if (correctedWidth < 0.12)
+        if (correctedWidth < 0.115)
           return {
             status: "AT RANGE",
             color: "text-amber-400",
             icon: "fa-circle",
           };
-        if (correctedWidth > 0.35)
+        if (correctedWidth > 0.36)
           return {
             status: "TOO CLOSE",
             color: "text-rose-400",
