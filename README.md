@@ -71,11 +71,16 @@ Play in your browser with webcam motion tracking, keyboard controls, or mobile t
 
 ## 🚀 Quick Start
 
-No build step required — it's a static site.
+No build step is required — it is a static site. The runtime is split into ordered browser scripts so the game remains framework-free while combat, camera, rendering, input, and UI code can evolve independently.
+
+```bash
+# Validate module order, syntax, and input bindings
+npm run check
+```
 
 ```bash
 # Local development
-npx serve . -p 3000 -s
+npm run dev
 
 # Or just open index.html in a browser
 ```
@@ -91,7 +96,12 @@ npx serve . -p 3000 -s
 
 ```
 anime-motion-fighter/
-├── index.html          # Complete game (single-file architecture)
+├── index.html          # Game markup and ordered runtime includes
+├── styles.css           # External game styling
+├── src/                 # Ordered runtime modules
+│   ├── 01-constants.js … 24-init.js
+├── tools/
+│   └── validate-project.mjs # Static structure and syntax checks
 ├── assets/
 │   ├── motion-duel-cyan.png    # P1 fighter portrait
 │   └── motion-duel-crimson.png # P2 fighter portrait
