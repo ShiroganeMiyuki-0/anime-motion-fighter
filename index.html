@@ -2,56 +2,56 @@
 <html lang="en" class="h-full">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="Anime Motion Fighter — a 3D body-controlled fighting game. Use your webcam or keyboard to punch, kick, guard, and unleash super beams in dramatic anime combat.">
 <meta name="theme-color" content="#020617">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <meta property="og:title" content="ANIME MOTION FIGHTER — 3D Body-Controlled Combat">
 <meta property="og:description" content="Move your body to fight. Webcam motion tracking meets anime-style 3D combat.">
 <meta property="og:type" content="website">
 <title>ANIME MOTION FIGHTER — 3D Body-Controlled Combat</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+<script defer src="https://cdn.tailwindcss.com"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
 <link rel="stylesheet" href="styles.css">
-<script src="src/01-constants.js"></script>
-<script src="src/02-state.js"></script>
-<script src="src/03-sound-engine.js"></script>
-<script src="src/04-smoothing.js"></script>
-<script src="src/05-loading.js"></script>
-<script src="src/06-landing-screen.js"></script>
-<script src="src/07-3d-world.js"></script>
-<script src="src/08-fighter-rig.js"></script>
-<script src="src/09-pose-processing.js"></script>
-<script src="src/10-combat.js"></script>
-<script src="src/11-adaptive-ai.js"></script>
-<script src="src/12-fx.js"></script>
-<script src="src/13-fighter-animation.js"></script>
-<script src="src/14-render-loop.js"></script>
-<script src="src/15-skeleton-overlay.js"></script>
-<script src="src/16-camera-onboarding.js"></script>
-<script src="src/17-camera-mediapipe.js"></script>
-<script src="src/18-manual-controls.js"></script>
-<script src="src/19-calibration.js"></script>
-<script src="src/20-ui.js"></script>
-<script src="src/21-modals.js"></script>
-<script src="src/22-usability-test-mode-test-1.js"></script>
-<script src="src/23-boot.js"></script>
-<script src="src/24-init.js"></script>
-<base target="_blank">
+<script defer src="src/01-constants.js"></script>
+<script defer src="src/02-state.js"></script>
+<script defer src="src/03-sound-engine.js"></script>
+<script defer src="src/04-smoothing.js"></script>
+<script defer src="src/05-loading.js"></script>
+<script defer src="src/06-landing-screen.js"></script>
+<script defer src="src/07-3d-world.js"></script>
+<script defer src="src/08-fighter-rig.js"></script>
+<script defer src="src/09-pose-processing.js"></script>
+<script defer src="src/10-combat.js"></script>
+<script defer src="src/11-adaptive-ai.js"></script>
+<script defer src="src/12-fx.js"></script>
+<script defer src="src/13-fighter-animation.js"></script>
+<script defer src="src/14-render-loop.js"></script>
+<script defer src="src/15-skeleton-overlay.js"></script>
+<script defer src="src/16-camera-onboarding.js"></script>
+<script defer src="src/17-camera-mediapipe.js"></script>
+<script defer src="src/18-manual-controls.js"></script>
+<script defer src="src/19-calibration.js"></script>
+<script defer src="src/20-ui.js"></script>
+<script defer src="src/21-modals.js"></script>
+<script defer src="src/22-usability-test-mode-test-1.js"></script>
+<script defer src="src/23-boot.js"></script>
+<script defer src="src/24-init.js"></script>
 </head>
 <body class="h-full overflow-hidden">
 
 <!-- ===== LOADING SCREEN ===== -->
 <div id="loadingScreen">
   <div class="loading-ring"></div>
-  <p class="font-orbitron text-sm text-cyan-400 mt-6 tracking-widest">INITIALIZING ARENA</p>
+  <p class="font-orbitron text-sm text-cyan-400 mt-6 tracking-widest" role="status" aria-live="polite">INITIALIZING ARENA</p>
   <div class="loading-bar"><div class="loading-bar-fill" id="loadingBarFill"></div></div>
-  <p class="font-inter text-xs text-slate-500 mt-3" id="loadingStatus">Loading 3D engine...</p>
+  <p class="font-inter text-xs text-slate-500 mt-3" id="loadingStatus" role="status" aria-live="polite">Loading 3D engine...</p>
 </div>
 
 <!-- ===== LANDING SCREEN ===== -->
@@ -324,7 +324,7 @@
 
     <!-- Gesture Status (bottom center) -->
     <div class="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 pointer-events-none text-center" id="gestureStatusWrap">
-      <div id="gestureStatus" class="font-orbitron text-[10px] sm:text-xs font-bold text-amber-300 bg-slate-900/90 border border-amber-500/30 px-4 py-1.5 rounded-full uppercase tracking-wider backdrop-blur inline-block">
+      <div id="gestureStatus" role="status" aria-live="polite" class="font-orbitron text-[10px] sm:text-xs font-bold text-amber-300 bg-slate-900/90 border border-amber-500/30 px-4 py-1.5 rounded-full uppercase tracking-wider backdrop-blur inline-block">
         STAND IN VIEW
       </div>
       <div id="combatReason" class="hidden max-w-[280px] text-[9px] sm:text-[10px] text-slate-400 bg-slate-950/80 border border-slate-700/50 px-3 py-1 rounded-lg mt-1.5 leading-relaxed font-inter mx-auto"></div>

@@ -16,6 +16,9 @@ assert(modules.length >= 20, `expected at least 20 runtime modules, found ${modu
 assert(modules.every((name, index) => name.startsWith(`${String(index + 1).padStart(2, '0')}-`)), 'runtime modules are not numerically ordered');
 assert(!/ontouchstart=|onmousedown=/i.test(html), 'legacy duplicate touch/mouse handlers remain');
 assert((html.match(/onpointerdown=/g) || []).length >= 6, 'pointer controls are missing');
+assert(/<meta name="viewport" content="width=device-width, initial-scale=1\.0">/.test(html), 'viewport is not zoom-capable');
+assert(!/<script(?![^>]*defer)[^>]*src="src\//i.test(html), 'a local runtime script is not deferred');
+assert((html.match(/<script defer src="src\//g) || []).length === modules.length, 'HTML/module count mismatch');
 
 for (const module of modules) {
   const file = join(root, 'src', module);

@@ -12,7 +12,7 @@ Play in your browser with webcam motion tracking, keyboard controls, or mobile t
 
 - **Webcam Motion Tracking** — Uses MediaPipe Pose to track your body movements in real-time. Punch, kick, guard, and charge by moving your actual body.
 - **Adaptive AI** — The AI opponent reads your move patterns and counters your strategy. Mix up your attacks to win.
-- **Multiple Game Modes** — Solo vs AI, Local Versus, Shared Camera 2P, Wizard Spell Duel, and Shooting Mode.
+- **Multiple Game Modes** — Solo vs AI, Local Versus, Shared Camera 2P, Wizard Spell Duel and Shooting Mode (coming soon).
 - **5 Unique Fighters** — Choose from G.ONE, KAKAROT, SHINOBI, VOID LORD, and RA.ONE, each with unique super attacks.
 - **3D Arena** — Full Three.js-powered 3D environment with toon shading, particle effects, and dynamic camera angles.
 - **Mobile Touch Controls** — On-screen buttons for phone and tablet players.
