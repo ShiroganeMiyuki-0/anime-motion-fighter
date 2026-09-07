@@ -1,13 +1,17 @@
 // ===================== FIGHTER RIG =====================
 function rebuildFighters3D() {
-  if (playerFighter3D) scene.remove(playerFighter3D.group);
-  if (aiFighter3D) scene.remove(aiFighter3D.group);
+  if (playerFighter3D) removeFighterVisuals(playerFighter3D);
+  if (aiFighter3D) removeFighterVisuals(aiFighter3D);
   auraSprites.forEach(s => scene.remove(s)); auraSprites = [];
 
   playerFighter3D = buildFighterRig(selectedP1Char, false);
   aiFighter3D = buildFighterRig(selectedP2Char, true);
   playerFighter3D.group.position.set(player.x, 0, 0);
   aiFighter3D.group.position.set(ai.x, 0, 0);
+  scene.add(playerFighter3D.motionSprite);
+  scene.add(aiFighter3D.motionSprite);
+  playerFighter3D.afterimages.forEach(s => scene.add(s));
+  aiFighter3D.afterimages.forEach(s => scene.add(s));
   scene.add(playerFighter3D.group);
   scene.add(aiFighter3D.group);
 
@@ -19,6 +23,60 @@ function rebuildFighters3D() {
   playerFighter3D.aura = auraP; aiFighter3D.aura = auraA;
 }
 
+function removeFighterVisuals(rig) {
+  if (!rig) return;
+  if (rig.group) scene.remove(rig.group);
+  if (rig.motionSprite) scene.remove(rig.motionSprite);
+  rig.afterimages?.forEach(sprite => scene.remove(sprite));
+  if (rig.motionTexture) rig.motionTexture.dispose();
+}
+function makeMotionTexture(colorHex) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 128; canvas.height = 192;
+  const ctx = canvas.getContext('2d');
+  const color = new THREE.Color(colorHex);
+  const rgb = `${Math.round(color.r * 255)},${Math.round(color.g * 255)},${Math.round(color.b * 255)}`;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const glow = ctx.createRadialGradient(64, 92, 12, 64, 92, 86);
+  glow.addColorStop(0, `rgba(${rgb},0.42)`);
+  glow.addColorStop(1, `rgba(${rgb},0)`);
+  ctx.fillStyle = glow; ctx.fillRect(0, 0, 128, 192);
+  ctx.save();
+  ctx.translate(64, 98);
+  ctx.shadowColor = `rgba(${rgb},0.95)`; ctx.shadowBlur = 14;
+  ctx.fillStyle = `rgba(${rgb},0.42)`; ctx.strokeStyle = `rgba(255,255,255,0.72)`; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(0, -58, 17, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-24, -35); ctx.lineTo(24, -35); ctx.lineTo(31, 23); ctx.lineTo(0, 42); ctx.lineTo(-31, 23); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.lineCap = 'round'; ctx.lineWidth = 10;
+  ctx.beginPath(); ctx.moveTo(-23, -24); ctx.lineTo(-43, 18); ctx.moveTo(23, -24); ctx.lineTo(43, 18); ctx.moveTo(-14, 39); ctx.lineTo(-23, 82); ctx.moveTo(14, 39); ctx.lineTo(23, 82); ctx.stroke();
+  ctx.shadowBlur = 0; ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(-13, -4); ctx.lineTo(13, -4); ctx.stroke();
+  ctx.restore();
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.minFilter = THREE.LinearFilter; texture.magFilter = THREE.LinearFilter;
+  texture.needsUpdate = true;
+  return texture;
+}
+function makeMotionSprite(colorHex, scale, texture) {
+  const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false, opacity: 0.16, blending: THREE.AdditiveBlending, depthTest: true });
+  const sprite = new THREE.Sprite(material);
+  sprite.scale.set(scale * 0.82, scale, 1);
+  sprite.center.set(0.5, 0.42);
+  return sprite;
+}
+function createMotionVisuals(charConfig, isEnemy) {
+  const texture = makeMotionTexture(charConfig.colorHex);
+  const motionSprite = makeMotionSprite(charConfig.colorHex, 3.0, texture);
+  const afterimages = [0, 1, 2].map(index => {
+    const sprite = makeMotionSprite(charConfig.colorHex, 2.8, texture);
+    sprite.material.opacity = 0;
+    sprite.renderOrder = -1 - index;
+    return sprite;
+  });
+  motionSprite.renderOrder = -2;
+  motionSprite.userData.isEnemy = isEnemy;
+  return { motionSprite, afterimages, motionTexture: texture };
+}
 function toonMat(colorHex, opts = {}) {
   return new THREE.MeshToonMaterial({ color: colorHex, gradientMap: toonGradientMap, ...opts });
 }
@@ -142,9 +200,11 @@ function buildFighterRig(charConfig, isEnemy) {
 
   if (isEnemy) group.rotation.y = -Math.PI / 2;
   else group.rotation.y = Math.PI / 2;
+  const motionVisuals = createMotionVisuals(charConfig, isEnemy);
 
   return {
     group, hips, headGroup, armL, armR, legL, legR, coreLight,
+    ...motionVisuals,
     cur: { shoulderL:0, elbowL:0, shoulderR:0, elbowR:0, hipL:0, kneeL:0, hipR:0, kneeR:0, bodyBend:0, headTurn:0, hipsY:0 }
   };
 }

@@ -1,4 +1,27 @@
 // ===================== FIGHTER ANIMATION =====================
+function updateMotionVisuals(rig, entity, stance, isEnemy, dt) {
+  if (!rig?.motionSprite) return;
+  const now = performance.now();
+  const action = ['PUNCH', 'KICK', 'SUPER'].includes(stance);
+  const hit = (entity.hitFlash || 0) > 0;
+  const pulse = 1 + Math.sin(now * 0.006 + (isEnemy ? 1.8 : 0)) * 0.035;
+  const lean = action ? (isEnemy ? -0.08 : 0.08) : 0;
+  const baseX = rig.group.position.x + lean;
+  const baseY = 1.02 + (rig.hips.position.y - 1.02) * 0.45;
+  rig.motionSprite.position.set(baseX, baseY, rig.group.position.z - 0.14);
+  rig.motionSprite.scale.set(2.46 * pulse * (action ? 1.08 : 1), 3.0 * pulse * (stance === 'CROUCH' ? 0.82 : 1), 1);
+  rig.motionSprite.material.opacity = hit ? 0.30 : (action ? 0.22 : 0.12);
+  rig.motionSprite.material.rotation = Math.sin(now * 0.003) * 0.015 + (entity.knockback || 0) * 0.02;
+
+  const echoStrength = action ? 0.18 : hit ? 0.10 : 0;
+  rig.afterimages.forEach((sprite, index) => {
+    const age = (index + 1) / rig.afterimages.length;
+    sprite.position.set(baseX - (isEnemy ? -1 : 1) * age * (action ? 0.32 : 0.08), baseY, rig.group.position.z - 0.22 - age * 0.03);
+    sprite.scale.set(2.46 * pulse, 3.0 * pulse, 1);
+    sprite.material.opacity = echoStrength * (1 - age) * (0.8 + Math.sin(now * 0.008 + index) * 0.2);
+    sprite.material.rotation = (isEnemy ? -1 : 1) * age * (action ? 0.10 : 0.025);
+  });
+}
 function updateFighterRig(rig, entity, stance, isEnemy, dt) {
   const c = rig.cur;
   let tShoulderL = 0, tElbowL = 0, tShoulderR = 0, tElbowR = 0;
@@ -61,4 +84,5 @@ function updateFighterRig(rig, entity, stance, isEnemy, dt) {
     rig.coreLight.intensity = 1.8 + entity.hitFlash * 4;
   } else { rig.coreLight.intensity = 1.8; }
   if (rig.aura) rig.aura.position.set(rig.group.position.x, 0.05, 0);
+  updateMotionVisuals(rig, entity, stance, isEnemy, dt);
 }
