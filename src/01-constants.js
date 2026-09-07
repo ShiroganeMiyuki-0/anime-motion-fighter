@@ -1,4 +1,8 @@
 // ===================== CONSTANTS =====================
+// Production stub — the full observer is in 22-usability-test-mode-test-1.js
+// and excluded from the production bundle.
+const usabilityObserver = typeof usabilityObserver !== 'undefined' ? usabilityObserver : { enabled: false, log() {} };
+if (typeof mountUsabilityPanel === 'undefined') { var mountUsabilityPanel = function() {}; }
 const CHARACTERS = {
   GONE:    { id:'GONE',    name:'G.ONE',    superName:'HART PLASMA BEAM',  colorHex:0x00e5ff, auraHex:0x38bdf8, desc:'Cyber HART Core Suit',     hairStyle:'HELMET' },
   KAKAROT: { id:'KAKAROT', name:'KAKAROT',  superName:'KAMEHA BLAST',     colorHex:0xeab308, auraHex:0xfef08a, desc:'Saiyan Martial Artist',    hairStyle:'SPIKY' },

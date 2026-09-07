@@ -137,7 +137,7 @@ async function initCamera() {
       if (!poseLoopRunning) return;
       try { if (poseInstance && videoElement.readyState >= 2) await poseInstance.send({ image: videoElement }); }
       catch (error) { console.warn('Pose frame skipped', error); }
-      setTimeout(sendFrame, 33); // throttle to ~30fps to reduce CPU load
+      if (poseLoopRunning) setTimeout(sendFrame, 33); // throttle to ~30fps; re-check in case stopCameraStream ran during await
     };
     cameraInstance = { stop: stopCameraStream };
     sendFrame();

@@ -23,13 +23,20 @@ function flashArenaLight(colorHex) {
   decay();
 }
 
+let _sparkGeo = null;
+function _getSparkGeo() {
+  if (!_sparkGeo) _sparkGeo = new THREE.SphereGeometry(0.06, 6, 6);
+  return _sparkGeo;
+}
+
 function create3DHitSparks(x, y, z, colorHex, count = 15) {
   cameraShake = Math.max(cameraShake, 8);
-  // Dynamic arena lighting — flash the arena color on hit
   flashArenaLight(colorHex);
   const safeCount = Math.min(count, 30);
+  const geo = _getSparkGeo();
   for (let i = 0; i < safeCount; i++) {
-    const p = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 6), new THREE.MeshBasicMaterial({ color: colorHex }));
+    const mat = new THREE.MeshBasicMaterial({ color: colorHex });
+    const p = new THREE.Mesh(geo, mat);
     p.position.set(x, y, z);
     p.userData = { vx: (Math.random()-0.5)*0.32, vy: Math.random()*0.28, vz: (Math.random()-0.5)*0.32, life: 1.0 };
     scene.add(p); particles3D.push(p);
@@ -37,7 +44,7 @@ function create3DHitSparks(x, y, z, colorHex, count = 15) {
 }
 
 function trigger3DBeam(startX, endX, colorHex) {
-  if (beamMesh) scene.remove(beamMesh);
+  if (beamMesh) { scene.remove(beamMesh); disposeObject3D(beamMesh); beamMesh = null; }
   const len = Math.abs(endX - startX);
   const beamGeo = new THREE.CylinderGeometry(0.38, 0.38, len, 16);
   const beamMat = new THREE.MeshBasicMaterial({ color: colorHex, transparent: true, opacity: 0.85 });
@@ -46,7 +53,7 @@ function trigger3DBeam(startX, endX, colorHex) {
   beamMesh.position.set((startX + endX) / 2, 1.65, 0);
   scene.add(beamMesh);
   create3DHitSparks((startX + endX) / 2, 1.65, 0, colorHex, 10);
-  setTimeout(() => { if (beamMesh) { scene.remove(beamMesh); beamMesh = null; } }, 380);
+  setTimeout(() => { if (beamMesh) { scene.remove(beamMesh); disposeObject3D(beamMesh); beamMesh = null; } }, 380);
 }
 
 function triggerProjectileSuper(startX, endX, colorHex, style) {
@@ -67,7 +74,7 @@ function triggerProjectileSuper(startX, endX, colorHex, style) {
     group.position.x = lerp(startX, endX, t);
     group.rotation.y += 0.35; group.rotation.x += 0.2;
     if (t < 1) requestAnimationFrame(tick);
-    else { scene.remove(group); create3DHitSparks(endX, 1.65, 0, colorHex, style === 'VOID' ? 26 : 16); }
+    else { scene.remove(group); disposeObject3D(group); create3DHitSparks(endX, 1.65, 0, colorHex, style === 'VOID' ? 26 : 16); }
   }
   tick();
 }
@@ -147,7 +154,7 @@ function showMatchResult(playerWon) {
   // Match stats
   const stats = [
     `Rounds: ${p1RoundWins}-${p2RoundWins}`,
-    `Best Combo: ${combo} hits`,
+    `Best Combo: ${bestCombo} hits`,
     `Threat Level: ${tierName(gameLevel)}`,
     `Fighter: ${selectedP1Char.name}`,
   ].join(' · ');

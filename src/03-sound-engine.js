@@ -1,10 +1,18 @@
 // ===================== SOUND ENGINE =====================
 class SoundEngine {
-  constructor() { this.ctx = null; this.muted = false; }
+  constructor() { this.ctx = null; this.muted = false; this._resumeBound = false; }
   init() {
     if (!this.ctx) {
       const A = window.AudioContext || window.webkitAudioContext;
       if (A) this.ctx = new A();
+    }
+    // Mobile browsers suspend AudioContext until a user gesture occurs.
+    // Resume on the next pointer/key interaction if needed.
+    if (this.ctx && this.ctx.state === 'suspended' && !this._resumeBound) {
+      this._resumeBound = true;
+      const resume = () => { this.ctx.resume().catch(() => {}); };
+      document.addEventListener('pointerdown', resume, { once: true });
+      document.addEventListener('keydown', resume, { once: true });
     }
   }
   tone(type, f0, f1, t, g = 0.5) {

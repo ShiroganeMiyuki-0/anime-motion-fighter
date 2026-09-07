@@ -173,8 +173,10 @@ async function startNextRound() {
   setCombatPhase('READY', 'STEP INTO FRAME OR USE TOUCH/KEYBOARD', 'text-amber-400');
 }
 
+let bestCombo = 0;
+
 function startMatch() {
-  currentRound = 1; p1RoundWins = 0; p2RoundWins = 0; playerScore = 0; aiScore = 0; roundLocked = true;
+  currentRound = 1; p1RoundWins = 0; p2RoundWins = 0; playerScore = 0; aiScore = 0; bestCombo = 0; roundLocked = true;
   usabilityObserver.log('match_start', { mode: selectedGameMode, p1: selectedP1Char.id, p2: selectedP2Char.id });
   const p2Suffix = selectedGameMode === '1P' ? ' (AI)' : selectedGameMode === 'CAM2P' ? ' (P2-CAM)' : ' (P2)';
   document.getElementById('p1NameText').textContent = 'P1: ' + selectedP1Char.name;
@@ -184,7 +186,7 @@ function startMatch() {
   document.getElementById('settingsLevelDisplay').textContent = 'LVL ' + gameLevel + ': ' + tierName(gameLevel);
   document.getElementById('gameOverlay').classList.add('hidden');
   renderRoundPips();
-  startNextRound();
+  startNextRound().catch(err => console.error('Round start failed', err));
 }
 
 function togglePause() {

@@ -23,11 +23,33 @@ function rebuildFighters3D() {
   playerFighter3D.aura = auraP; aiFighter3D.aura = auraA;
 }
 
+function disposeObject3D(obj) {
+  if (!obj) return;
+  obj.traverse(child => {
+    if (child.geometry) child.geometry.dispose();
+    if (child.material) {
+      if (child.material.map) child.material.map.dispose();
+      child.material.dispose();
+    }
+  });
+}
+
 function removeFighterVisuals(rig) {
   if (!rig) return;
-  if (rig.group) scene.remove(rig.group);
-  if (rig.motionSprite) scene.remove(rig.motionSprite);
-  rig.afterimages?.forEach(sprite => scene.remove(sprite));
+  if (rig.group) {
+    disposeObject3D(rig.group);
+    scene.remove(rig.group);
+  }
+  if (rig.motionSprite) {
+    if (rig.motionSprite.material?.map) rig.motionSprite.material.map.dispose();
+    rig.motionSprite.material?.dispose();
+    scene.remove(rig.motionSprite);
+  }
+  rig.afterimages?.forEach(sprite => {
+    if (sprite.material?.map) sprite.material.map.dispose();
+    sprite.material?.dispose();
+    scene.remove(sprite);
+  });
   if (rig.motionTexture) rig.motionTexture.dispose();
 }
 function makeMotionTexture(colorHex) {

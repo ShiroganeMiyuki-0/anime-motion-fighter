@@ -63,7 +63,7 @@ function runFrame(now) {
     p.position.x += p.userData.vx; p.position.y += p.userData.vy; p.position.z += p.userData.vz;
     p.userData.vy -= 0.01;
     p.userData.life -= 0.045; p.scale.setScalar(Math.max(0, p.userData.life));
-    if (p.userData.life <= 0) { scene.remove(p); particles3D.splice(i, 1); }
+    if (p.userData.life <= 0) { scene.remove(p); p.material?.dispose(); particles3D.splice(i, 1); }
   }
 
   renderSceneView();

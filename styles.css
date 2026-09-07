@@ -222,3 +222,27 @@ canvas#fxCanvas{display:block;width:100%;height:100%;}
 /* Show the "short" header labels only when compact-landscape is active.
    On normal viewports the full labels are visible by default. */
 .label-short { display: none; }
+
+/* ===== NOSCRIPT FALLBACK ===== */
+.noscript-fallback{position:fixed;inset:0;z-index:99999;background:#020617;display:flex;align-items:center;justify-content:center;text-align:center;padding:32px;}
+.noscript-card{max-width:400px;}
+.noscript-icon{font-size:48px;margin-bottom:16px;}
+.noscript-title{color:#38bdf8;font-family:monospace;font-size:20px;margin-bottom:12px;}
+.noscript-desc{color:#94a3b8;font-family:sans-serif;font-size:14px;line-height:1.6;}
+#loadingScreen{display:none;}
+/* ===== CDN SCRIPT ERROR FALLBACK ===== */
+.cdn-error-overlay{position:fixed;inset:0;z-index:99998;background:#020617;display:flex;align-items:center;justify-content:center;text-align:center;padding:32px;}
+.cdn-error-card{max-width:440px;background:rgba(15,23,42,.9);border:1px solid rgba(148,163,184,.15);border-radius:16px;padding:28px;}
+.cdn-error-title{color:#f43f5e;font-family:'Orbitron',sans-serif;font-size:18px;margin-bottom:8px;}
+.cdn-error-desc{color:#94a3b8;font-family:'Inter',sans-serif;font-size:13px;line-height:1.6;margin-bottom:16px;}
+.cdn-error-btn{background:linear-gradient(135deg,#38bdf8,#6366f1);color:#fff;border:none;padding:10px 28px;border-radius:10px;font-family:'Orbitron',sans-serif;font-weight:700;font-size:13px;cursor:pointer;letter-spacing:.04em;}
+.cdn-error-btn:hover{opacity:.9;}
+
+/* ===== CAMERA ONBOARDING ===== */
+.camera-onboarding{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(2,6,23,0.8);border-radius:14px;padding:12px;text-align:center;animation:fadeIn 0.5s ease;}
+.camera-onboarding-title{font-family:'Orbitron',sans-serif;font-size:10px;color:#38bdf8;letter-spacing:0.1em;margin-bottom:8px;}
+.camera-onboarding-body{font-size:11px;color:#cbd5e1;line-height:1.5;max-width:200px;}
+.camera-onboarding-body div{margin-bottom:6px;}
+.camera-onboarding-body div:last-child{margin-bottom:0;}
+.camera-onboarding-dismiss{margin-top:10px;padding:6px 16px;background:rgba(56,189,248,0.2);border:1px solid rgba(56,189,248,0.4);border-radius:8px;color:#38bdf8;font-family:'Orbitron',sans-serif;font-size:9px;cursor:pointer;letter-spacing:0.05em;}
+.camera-onboarding-dismiss:hover{background:rgba(56,189,248,0.3);}

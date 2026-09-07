@@ -1,6 +1,16 @@
 // ===================== BOOT =====================
 async function bootGame() {
   try {
+    // Check for CDN script load failures — if critical globals are missing,
+    // the CDN scripts failed (ad blocker, network issue, etc.)
+    if (typeof THREE === 'undefined') {
+      const overlay = document.getElementById('gameOverlay');
+      document.getElementById('overlayTitle').innerHTML = '<span class="text-rose-400">RESOURCE LOAD ERROR</span>';
+      document.getElementById('overlayDesc').textContent = 'The 3D engine (Three.js) failed to load. Check your internet connection, disable ad blockers for this site, and reload.';
+      document.getElementById('overlayButtons').innerHTML = '<button onclick="location.reload()" class="cta-button cta-primary text-sm">RELOAD</button>';
+      overlay.classList.remove('hidden');
+      return;
+    }
     // Wait for fonts to load so canvas text renders correctly
     if (document.fonts) { try { await document.fonts.load('700 16px Orbitron'); } catch(e) {} }
     init3DWorld();

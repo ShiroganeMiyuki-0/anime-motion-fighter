@@ -166,7 +166,7 @@ The game automatically detects mobile devices and shows touch controls:
 
 ## 📄 License
 
-MIT License — see [LICENSE](LICENSE) for details.
+All Rights Reserved. This project is for personal and educational use only. Do not copy, redistribute, or use this code for commercial purposes without explicit permission from the author.
 
 ---
 

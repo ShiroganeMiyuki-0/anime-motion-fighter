@@ -19,6 +19,15 @@
 <script defer src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
 <link rel="stylesheet" href="styles.css">
+<noscript>
+  <div class="noscript-fallback">
+    <div class="noscript-card">
+      <p class="noscript-icon">⚡</p>
+      <h2 class="noscript-title">JavaScript Required</h2>
+      <p class="noscript-desc">Anime Motion Fighter needs JavaScript to run the 3D engine, webcam tracking, and game logic. Please enable JavaScript in your browser settings and reload.</p>
+    </div>
+  </div>
+</noscript>
 <script defer src="src/01-constants.js"></script>
 <script defer src="src/02-state.js"></script>
 <script defer src="src/03-sound-engine.js"></script>
@@ -120,10 +129,10 @@
 
     <!-- CTA -->
     <div class="flex flex-col sm:flex-row gap-3 animate-fade-in-up" style="animation-delay:.5s">
-      <button id="landingStartBtn" class="cta-button cta-primary">
+      <button id="landingStartBtn" class="cta-button cta-primary" aria-label="Start the game">
         <i class="fa-solid fa-bolt mr-2"></i>ENTER THE ARENA
       </button>
-      <button onclick="showHelpModal()" class="cta-button cta-secondary">
+      <button onclick="showHelpModal()" class="cta-button cta-secondary" aria-label="Open how to play guide">
         <i class="fa-solid fa-circle-question mr-2"></i>How to Play
       </button>
     </div>
@@ -174,10 +183,10 @@
             </label>
           </div>
           <div class="flex gap-2 mt-3">
-            <button onclick="toggleCameraVisibility()" class="flex-1 px-3 py-1.5 bg-slate-800/60 rounded-lg border border-slate-700/50 text-[10px] font-orbitron text-slate-400 hover:border-cyan-500/40 transition" id="camVisBtn">
+            <button onclick="toggleCameraVisibility()" class="flex-1 px-3 py-1.5 bg-slate-800/60 rounded-lg border border-slate-700/50 text-[10px] font-orbitron text-slate-400 hover:border-cyan-500/40 transition" id="camVisBtn" aria-label="Toggle camera visibility">
               <i class="fa-solid fa-eye-slash mr-1"></i><span id="camVisLabel">HIDE CAM</span>
             </button>
-            <button onclick="toggleSplitScreen()" class="flex-1 px-3 py-1.5 bg-slate-800/60 rounded-lg border border-slate-700/50 text-[10px] font-orbitron text-slate-400 hover:border-cyan-500/40 transition" id="splitBtn">
+            <button onclick="toggleSplitScreen()" class="flex-1 px-3 py-1.5 bg-slate-800/60 rounded-lg border border-slate-700/50 text-[10px] font-orbitron text-slate-400 hover:border-cyan-500/40 transition" id="splitBtn" aria-label="Toggle split screen view">
               <i class="fa-solid fa-table-columns mr-1"></i>SPLIT POV
             </button>
           </div>
@@ -193,17 +202,17 @@
       </details>
 
       <!-- Mobile settings toggle -->
-      <button class="md:hidden px-2 py-1.5 bg-slate-800/60 hover:bg-slate-700/60 rounded-lg border border-slate-700/50 text-slate-400 text-xs" onclick="toggleMobileSettings()">
+      <button class="md:hidden px-2 py-1.5 bg-slate-800/60 hover:bg-slate-700/60 rounded-lg border border-slate-700/50 text-slate-400 text-xs" onclick="toggleMobileSettings()" aria-label="Open settings">
         <i class="fa-solid fa-sliders"></i>
       </button>
 
-      <button onclick="openModeSelectModal()" class="px-2.5 py-1.5 bg-slate-800/60 hover:bg-slate-700/60 rounded-lg border border-slate-700/50 text-amber-400 text-[10px] font-orbitron transition">
+      <button onclick="openModeSelectModal()" class="px-2.5 py-1.5 bg-slate-800/60 hover:bg-slate-700/60 rounded-lg border border-slate-700/50 text-amber-400 text-[10px] font-orbitron transition" aria-label="Change game mode">
         <i class="fa-solid fa-users mr-1"></i><span class="label-full">MODE</span>
       </button>
-      <button onclick="toggleKeyboardDrawer()" class="px-2.5 py-1.5 bg-slate-800/60 hover:bg-slate-700/60 rounded-lg border border-slate-700/50 text-cyan-400 text-[10px] font-orbitron transition" id="kbToggleBtn">
+      <button onclick="toggleKeyboardDrawer()" class="px-2.5 py-1.5 bg-slate-800/60 hover:bg-slate-700/60 rounded-lg border border-slate-700/50 text-cyan-400 text-[10px] font-orbitron transition" id="kbToggleBtn" aria-label="Toggle keyboard controls">
         <i class="fa-solid fa-gamepad mr-1"></i><span class="label-full">KEYS</span>
       </button>
-      <button id="startCamBtn" onclick="initCamera()" class="px-3 py-1.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-orbitron font-bold rounded-lg text-[10px] sm:text-xs shadow-lg transition" data-loading="false">
+      <button id="startCamBtn" onclick="initCamera()" class="px-3 py-1.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-orbitron font-bold rounded-lg text-[10px] sm:text-xs shadow-lg transition" data-loading="false" aria-label="Start webcam for motion tracking">
         <i class="fa-solid fa-video mr-1"></i><span class="label-full">WEBCAM</span>
       </button>
       <button onclick="startCalibration()" class="px-2.5 py-1.5 bg-slate-800/60 hover:bg-slate-700/60 rounded-lg border border-emerald-500/30 text-emerald-400 text-[10px] font-orbitron transition" id="calibBtn">

@@ -11,7 +11,8 @@ const modules = [
   '09-pose-processing.js', '10-combat.js', '11-adaptive-ai.js', '12-fx.js',
   '13-fighter-animation.js', '14-render-loop.js', '15-skeleton-overlay.js',
   '16-camera-onboarding.js', '17-camera-mediapipe.js', '18-manual-controls.js',
-  '19-calibration.js', '20-ui.js', '21-modals.js', '22-usability-test-mode-test-1.js',
+  '19-calibration.js', '20-ui.js', '21-modals.js',
+  // 22-usability-test-mode-test-1.js excluded from production build
   '23-boot.js', '24-init.js'
 ];
 

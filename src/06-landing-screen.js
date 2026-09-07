@@ -8,10 +8,12 @@ function initLanding() {
     const isDisabled = !!mode.disabled;
     card.className = 'mode-card p-4' + (mode.id === '1P' ? ' selected' : '') + (isDisabled ? ' opacity-50 cursor-not-allowed' : '');
     card.dataset.mode = mode.id;
+    const colorMap = { cyan:'#38bdf8', rose:'#f43f5e', emerald:'#10b981', purple:'#a855f7', orange:'#f97316' };
+    const hex = colorMap[mode.color] || '#38bdf8';
     card.innerHTML = `
       <div class="flex items-center gap-3 mb-2">
-        <i class="fa-solid ${mode.icon} text-xl text-${mode.color}-400"></i>
-        <span class="font-orbitron font-bold text-sm text-${mode.color}-300">${mode.name}</span>
+        <i class="fa-solid ${mode.icon} text-xl" style="color:${hex}"></i>
+        <span class="font-orbitron font-bold text-sm" style="color:${hex}">${mode.name}</span>
         ${isDisabled ? '<span class="ml-auto text-[9px] font-orbitron text-amber-400 border border-amber-500/30 rounded px-1.5 py-0.5">SOON</span>' : ''}
       </div>
       <p class="text-xs text-slate-400 font-inter leading-relaxed">${mode.desc}</p>

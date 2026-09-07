@@ -18,7 +18,7 @@
     "mediapipe",
     "three.js"
   ],
-  "license": "MIT",
+  "license": "UNLICENSED",
   "devDependencies": {
     "esbuild": "^0.25.9"
   }

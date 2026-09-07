@@ -29,6 +29,7 @@ function beginCombatAttack(attackerNum, type) {
 
 function incrementCombo() {
   combo++;
+  if (combo > bestCombo) bestCombo = combo;
   const el = document.getElementById('comboDisplay');
   const numEl = document.getElementById('comboNumber');
   el.classList.add('active');
