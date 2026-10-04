@@ -34,6 +34,8 @@ let cameraShake = 0, hitStopFrames = 0;
 let playerScore = 0, aiScore = 0;
 let isMobile = /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent) || (window.innerWidth <= 768);
 let vrActive = false;
+// Honor the OS "reduce motion" setting: tames screen shake, white flashes and speed lines.
+const reducedMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 let globalDistScale = 1.0;
 
 // Pose tracking
@@ -63,5 +65,5 @@ const ai = {
   isGuarding:false, isCharging:false, isCrouching:false,
   knockback:0, hitFlash:0, homeX:3.2,
   history: { PUNCH:0, KICK:0, GUARD:0, CROUCH:0, CHARGE:0 },
-  pendingAction:null, telegraphTimer:0
+  pendingAction:null, telegraphTimer:0, counterUntil:0
 };

@@ -74,3 +74,39 @@ python3 -m http.server 8765
 - The skeleton overlay on the camera preview now has a soft glow
   around each tracked landmark instead of a hard fill.
 - Append `?test=1` and the observer panel appears bottom-left.
+
+
+---
+
+# Pass 2 — startup + production fixes, combat rework
+
+## Bugs fixed
+
+- **Game would not start from source.** `01-constants.js` had
+  `const usabilityObserver = typeof usabilityObserver !== 'undefined' ? ...`.
+  A `const` read in its own initializer is a TDZ `ReferenceError`, and module 22
+  then redeclared it, so `CHARACTERS`, `GAME_MODES`, etc. never existed.
+  The stub is now a `var` that module 22 extends with `Object.assign`.
+- **Every button was dead in the production bundle.** `build.mjs` used esbuild
+  `bundle: true`, which wraps everything in a closure, but `index.html` calls
+  `startMatch()`, `togglePause()`, `openModeSelectModal()`… from inline
+  `onclick`. The build now uses `transform` (minify only, no wrapper, top-level
+  names preserved) and discovers modules from `src/` so a new file can't be
+  forgotten.
+- **Combos and score counted blocked hits.** Now only landed hits build a combo
+  or score, and being hit breaks your combo. Training mode's "land one hit"
+  prompt now actually means a landed hit.
+- **COUNTER was announced and instantly overwritten by CONTACT.** Fixed.
+- **A blocked attack burned the counter window.** It now survives until used or expired.
+- **Local versus was asymmetric.** Only P1 could ever counter. P2 (human) now can; the AI still can't.
+- **Free supers by key-mashing.** `Charge` gave +20 ki per tap with no limit (5 taps). Now +10, max 4 taps/s.
+- **AI could fire instantly after a stall.** The AI timer now uses a capped frame delta.
+
+## Changes
+
+- Punch and kick resolution merged into one `resolveStrike` (≈100 duplicated lines → table-driven).
+- Fighters have stat traits (`mods` in `CHARACTERS`), shown on the select cards.
+- Ki builds from landing (+4/+6) and taking (+2/+3) hits.
+- AI telegraph shortens with threat tier (900 ms → 460 ms).
+- Saved prefs + career stats (`25-save-and-prefs.js`), auto-pause on tab hide,
+  `prefers-reduced-motion` support.

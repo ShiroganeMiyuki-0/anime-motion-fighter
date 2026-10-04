@@ -1,35 +1,30 @@
-import { readFileSync, mkdirSync, writeFileSync, cpSync, rmSync } from 'node:fs';
+import { readFileSync, readdirSync, mkdirSync, writeFileSync, cpSync } from 'node:fs';
 import { join } from 'node:path';
-import { build } from 'esbuild';
+import { transform } from 'esbuild';
 
 const root = process.cwd();
 const srcDir = join(root, 'src');
 const distDir = join(root, 'dist');
-const modules = [
-  '01-constants.js', '02-state.js', '03-sound-engine.js', '04-smoothing.js',
-  '05-loading.js', '06-landing-screen.js', '07-3d-world.js', '08-fighter-rig.js',
-  '09-pose-processing.js', '10-combat.js', '11-adaptive-ai.js', '12-fx.js',
-  '13-fighter-animation.js', '14-render-loop.js', '15-skeleton-overlay.js',
-  '16-camera-onboarding.js', '17-camera-mediapipe.js', '18-manual-controls.js',
-  '19-calibration.js', '20-ui.js', '21-modals.js',
-  // 22-usability-test-mode-test-1.js excluded from production build
-  '23-boot.js', '24-init.js'
-];
+// Discover runtime modules so a new src/NN-*.js file can't be silently left out of
+// production. The usability observer (22) stays dev-only; 01 ships a no-op stub of it.
+const modules = readdirSync(srcDir).filter(n => n.endsWith('.js') && !n.startsWith('22-')).sort();
 
 mkdirSync(distDir, { recursive: true });
 const entry = modules.map(name => readFileSync(join(srcDir, name), 'utf8')).join('\n\n');
-const entryPath = join(distDir, 'runtime-entry.js');
-writeFileSync(entryPath, entry);
-await build({
-  entryPoints: [entryPath],
-  outfile: join(distDir, 'app.js'),
-  bundle: true,
+// The game uses inline onclick/onpointerdown handlers in index.html, so the
+// top-level functions and `let` state MUST stay in the global scope. A bundled
+// build wraps everything in a closure, which silently killed every button in
+// production. `transform` minifies the concatenated script without wrapping it
+// and without renaming top-level bindings.
+const { code, map } = await transform(entry, {
   minify: true,
-  sourcemap: true,
+  sourcemap: 'external',
+  sourcefile: 'app.src.js',
   legalComments: 'none',
-  target: ['es2020']
+  target: 'es2020'
 });
-rmSync(entryPath, { force: true });
+writeFileSync(join(distDir, 'app.js'), code + '\n//# sourceMappingURL=app.js.map\n');
+writeFileSync(join(distDir, 'app.js.map'), map);
 const productionIndex = readFileSync(join(root, 'index.html'), 'utf8')
   .replace(/\n<script defer src="src\/[^>]+><\/script>/g, '')
   .replace('</head>', '  <script defer src="app.js"></script>\n</head>');

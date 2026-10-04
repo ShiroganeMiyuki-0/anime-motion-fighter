@@ -7,7 +7,15 @@ function triggerManualAction(playerNum, action) {
   else if (action === 'KICK') { targetObj.stance = 'KICK'; executePlayerKick(playerNum); }
   else if (action === 'GUARD') { targetObj.stance = 'GUARD'; targetObj.isGuarding = true; targetObj.isCrouching = false; targetObj.isCharging = false; setTimeout(() => { targetObj.isGuarding = false; if (targetObj.stance === 'GUARD') targetObj.stance = 'IDLE'; }, 400); }
   else if (action === 'DUCK') { targetObj.stance = 'CROUCH'; targetObj.isCrouching = true; targetObj.isGuarding = false; targetObj.isCharging = false; setTimeout(() => { targetObj.isCrouching = false; if (targetObj.stance === 'CROUCH') targetObj.stance = 'IDLE'; }, 400); }
-  else if (action === 'CHARGE') { targetObj.stance = 'CHARGING'; targetObj.ki = Math.min(100, targetObj.ki + 20); sound.playCharge(); updateHud(); }
+  else if (action === 'CHARGE') {
+    // Was +20 per tap with no limit (5 taps = free super). Now +10, at most 4 taps/second.
+    targetObj.stance = 'CHARGING';
+    const t = performance.now();
+    if (t - (targetObj.lastChargeAt || 0) >= 250) {
+      targetObj.lastChargeAt = t;
+      gainKi(targetObj, 10 * fighterMods(playerNum).ki); sound.playCharge(); updateHud();
+    }
+  }
   else if (action === 'SUPER') {
     if (targetObj.ki >= 100) executePlayerSuper(playerNum);
     else addFloatingText('NEED 100% KI!', playerNum === 1 ? 0.3 : 0.7, 0.4, '#eab308');

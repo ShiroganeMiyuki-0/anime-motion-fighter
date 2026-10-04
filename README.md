@@ -13,13 +13,15 @@ Play in your browser with webcam motion tracking, keyboard controls, or mobile t
 - **Webcam Motion Tracking** — Uses MediaPipe Pose to track your body movements in real-time. Punch, kick, guard, and charge by moving your actual body.
 - **Adaptive AI** — The AI opponent reads your move patterns and counters your strategy. Mix up your attacks to win.
 - **Multiple Game Modes** — Solo vs AI, Local Versus, Shared Camera 2P, Wizard Spell Duel and Shooting Mode (coming soon).
-- **5 Unique Fighters** — Choose from G.ONE, KAKAROT, SHINOBI, VOID LORD, and RA.ONE, each with unique super attacks.
+- **5 Unique Fighters** — G.ONE (balanced), KAKAROT (+12% power), SHINOBI (+18% attack speed), VOID LORD (+35% ki gain), RA.ONE (+18% damage, slower swings), each with its own super.
 - **3D Arena** — Full Three.js-powered 3D environment with toon shading, particle effects, and dynamic camera angles.
 - **Mobile Touch Controls** — On-screen buttons for phone and tablet players.
 - **Keyboard Fallback** — Full keyboard controls when camera isn't available.
 - **Best-of-3 Rounds** — Structured match play with escalating difficulty.
-- **Ki System** — Charge energy to unleash devastating super beam attacks.
-- **Counter System** — Successful guards open a counter-attack window for bonus damage.
+- **Ki System** — Charge energy, or build meter by landing and taking hits, to unleash devastating super attacks. Keyboard charging is rate-limited so supers have to be earned.
+- **Counter System** — Successful guards open a 0.7 s counter window for bonus damage (for both players in local versus; the AI never gets one).
+- **Saved Progress** — Mode, fighters, mute setting and a Solo career record (W–L, best combo, top tier) are remembered in your browser. Nothing leaves the page.
+- **Comfort Options** — Honors your OS *reduce motion* setting (softer flashes, less shake); the match auto-pauses if you switch tabs.
 
 ---
 
@@ -71,7 +73,7 @@ Play in your browser with webcam motion tracking, keyboard controls, or mobile t
 
 ## 🚀 Quick Start
 
-No build step is required — it is a static site. The runtime is split into ordered browser scripts so the game remains framework-free while combat, camera, rendering, input, and UI code can evolve independently.
+No build step is required for development — it is a static site. `npm run build` minifies the modules into `dist/` (Vercel runs this). The bundle is deliberately **not** wrapped in a closure, because `index.html` uses inline `onclick` handlers that need global functions. The runtime is split into ordered browser scripts so the game remains framework-free while combat, camera, rendering, input, and UI code can evolve independently.
 
 ```bash
 # Validate module order, syntax, and input bindings
@@ -99,7 +101,7 @@ anime-motion-fighter/
 ├── index.html          # Game markup and ordered runtime includes
 ├── styles.css           # External game styling
 ├── src/                 # Ordered runtime modules
-│   ├── 01-constants.js … 24-init.js
+│   ├── 01-constants.js … 25-save-and-prefs.js
 ├── tools/
 │   └── validate-project.mjs # Static structure and syntax checks
 ├── assets/

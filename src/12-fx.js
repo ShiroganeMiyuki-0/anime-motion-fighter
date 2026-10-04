@@ -86,6 +86,7 @@ function triggerCharacterSuperFX(attackerChar, startX, endX) {
 }
 
 function flashScreen(intensity) {
+  if (reducedMotion) intensity *= 0.3;   // photosensitivity: soften full-screen white flashes
   const el = document.getElementById('hitFlash');
   el.style.background = intensity > 0.15 ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.4)';
   el.style.opacity = intensity;
@@ -95,6 +96,7 @@ function flashScreen(intensity) {
 
 // Anime-style impact frame — white flash with freeze on big hits
 function triggerImpactFrame() {
+  if (reducedMotion) return;
   const el = document.getElementById('impactFrame');
   el.style.opacity = '0.9';
   setTimeout(() => { el.style.opacity = '0'; }, 80);
@@ -162,6 +164,7 @@ function showMatchResult(playerWon) {
   desc.innerHTML = `
     <div style="margin-bottom:12px;">${playerWon ? selectedP1Char.name + ' dominates the arena!' : selectedP2Char.name + ' wins the duel.'}</div>
     <div style="font-size:11px;color:#94a3b8;font-family:Orbitron;letter-spacing:0.05em;">${stats}</div>
+    ${lastCareer ? `<div style="margin-top:8px;font-size:10px;color:#64748b;font-family:Orbitron;letter-spacing:0.05em;">CAREER ${lastCareer.wins}W–${lastCareer.losses}L · BEST COMBO ${lastCareer.bestCombo} · TOP TIER ${tierName(lastCareer.topTier)}</div>` : ''}
   `;
 
   buttons.innerHTML = `

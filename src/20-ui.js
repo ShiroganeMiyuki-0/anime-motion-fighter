@@ -136,6 +136,7 @@ async function resolveRound(playerWon) {
 
 function endGame(playerWon) {
   gameState = 'OVER';
+  lastCareer = selectedGameMode === '1P' ? recordMatchResult(playerWon) : null;
   if (playerWon && selectedGameMode === '1P') {
     gameLevel = Math.min(THREAT_TIERS.length, gameLevel + 1);
   }
@@ -153,7 +154,7 @@ async function startNextRound() {
   ai.actionTimer = 0;
   ai.reactionDelay = Math.max(260, 620 - (gameLevel - 1) * 70);
   ai.history = { PUNCH:0, KICK:0, GUARD:0, CROUCH:0, CHARGE:0 };
-  ai.pendingAction = null; ai.telegraphTimer = 0; ai.isCharging = false;
+  ai.pendingAction = null; ai.telegraphTimer = 0; ai.isCharging = false; ai.counterUntil = 0;
   combo = 0; document.getElementById('comboDisplay').classList.remove('active');
   p1PhysicalHitCooldown = 0;
   dualContactState = { p1: Object.create(null), p2: Object.create(null) };
@@ -176,6 +177,7 @@ async function startNextRound() {
 let bestCombo = 0;
 
 function startMatch() {
+  savePrefs();
   currentRound = 1; p1RoundWins = 0; p2RoundWins = 0; playerScore = 0; aiScore = 0; bestCombo = 0; roundLocked = true;
   usabilityObserver.log('match_start', { mode: selectedGameMode, p1: selectedP1Char.id, p2: selectedP2Char.id });
   const p2Suffix = selectedGameMode === '1P' ? ' (AI)' : selectedGameMode === 'CAM2P' ? ' (P2-CAM)' : ' (P2)';
@@ -215,5 +217,6 @@ function togglePause() {
 }
 function toggleMute() {
   sound.muted = !sound.muted;
+  savePrefs();
   document.getElementById('muteBtn').innerHTML = sound.muted ? '<i class="fa-solid fa-volume-xmark"></i>' : '<i class="fa-solid fa-volume-high"></i>';
 }
