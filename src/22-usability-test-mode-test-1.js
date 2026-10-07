@@ -1,7 +1,7 @@
 // ===================== USABILITY TEST MODE (?test=1) =====================
 // Local-only observer panel documented in docs/usability-test.md. Records
 // high-level in-session events to memory; never uploads anything.
-const usabilityObserver = {
+Object.assign(usabilityObserver, {
   enabled: false,
   events: [],
   recording: false,
@@ -30,7 +30,7 @@ const usabilityObserver = {
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   },
-};
+});
 function mountUsabilityPanel() {
   if (!usabilityObserver.enabled) return;
   const panel = document.createElement('div');

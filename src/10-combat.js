@@ -7,6 +7,13 @@ function setPortraitState(side, state, duration = 360) {
   if (state !== 'ready') el._stateTimer = setTimeout(() => { el.dataset.state = 'ready'; }, duration);
 }
 
+// Per-fighter stat traits (see CHARACTERS in 01-constants.js).
+const NEUTRAL_MODS = { dmg:1, cd:1, ki:1 };
+function fighterMods(num) { return (num === 1 ? selectedP1Char : selectedP2Char).mods || NEUTRAL_MODS; }
+function gainKi(actor, amount) { actor.ki = Math.min(actor.maxKi || 100, actor.ki + amount); }
+// P2 only earns a counter window when it is a human; the AI never gets one.
+function hasCounterWindow(num) { return num === 1 || selectedGameMode !== '1P'; }
+
 function beginCombatAttack(attackerNum, type) {
   if (gameState !== 'PLAYING' || roundLocked) return false;
   const actor = attackerNum === 1 ? player : ai;
@@ -17,14 +24,20 @@ function beginCombatAttack(attackerNum, type) {
     if (attackerNum === 1) setCombatPhase('RECOVERY', 'RECOVERY — WAIT...', 'text-slate-400');
     return false;
   }
+  const cooldown = rule.cooldown * fighterMods(attackerNum).cd;
   actor.lastAttackTime = now;
-  actor.attackLockUntil = now + rule.cooldown;
+  actor.attackLockUntil = now + cooldown;
   actor.stance = type;
-  setPortraitState(attackerNum === 1 ? 'p1' : 'p2', 'attack', Math.min(320, rule.cooldown));
+  setPortraitState(attackerNum === 1 ? 'p1' : 'p2', 'attack', Math.min(320, cooldown));
   setTimeout(() => {
     if (actor.stance === type && !actor.isGuarding && !actor.isCrouching) actor.stance = 'READY';
-  }, Math.min(260, rule.cooldown - 40));
+  }, Math.min(260, cooldown - 40));
   return true;
+}
+
+function resetCombo() {
+  combo = 0; clearTimeout(comboTimer);
+  document.getElementById('comboDisplay')?.classList.remove('active');
 }
 
 function incrementCombo() {
@@ -36,91 +49,79 @@ function incrementCombo() {
   numEl.textContent = combo;
   sound.playCombo(combo);
   clearTimeout(comboTimer);
-  comboTimer = setTimeout(() => { combo = 0; el.classList.remove('active'); }, 1800);
+  comboTimer = setTimeout(resetCombo, 1800);
 }
 
 function triggerHitStop(frames) { hitStopFrames = Math.max(hitStopFrames, frames); }
 function applyKnockback(target, attackerIsP1, amount) { target.knockback = amount * (attackerIsP1 ? 1 : -1); }
 
-function executePlayerPunch(attackerNum, damageMultiplier = 1.0) {
-  if (!beginCombatAttack(attackerNum, 'PUNCH')) return;
-  sound.playPunch();
+// Presentation + meter data for the two basic strikes. Punch and kick used to be
+// two ~50-line copies of the same function; they only differ by these numbers.
+const STRIKE_FX = {
+  PUNCH: { sfx:'playPunch', points:1, sparks:14, blockSparks:8,  stop:4, blockStop:3, flash:0.08, impact:false, lines:8,  color:'#f43f5e', kiGain:4, kiTaken:2,
+           hitText: d => '-' + d + ' HP',    floatText: d => '-' + d,           counterText: d => 'COUNTER! +' + d },
+  KICK:  { sfx:'playKick',  points:2, sparks:20, blockSparks:10, stop:6, blockStop:4, flash:0.14, impact:true,  lines:12, color:'#10b981', kiGain:6, kiTaken:3,
+           hitText: d => '-' + d + ' KICK!', floatText: d => '-' + d + ' KICK!', counterText: d => 'COUNTER KICK! +' + d }
+};
+
+function resolveStrike(attackerNum, type, damageMultiplier = 1.0) {
+  if (!beginCombatAttack(attackerNum, type)) return;
+  const fx = STRIKE_FX[type], rule = COMBAT_RULES[type];
+  sound[fx.sfx]();
   const isP1 = attackerNum === 1;
+  const attacker = isP1 ? player : ai;
   const target = isP1 ? ai : player;
   const attackerChar = isP1 ? selectedP1Char : selectedP2Char;
-  if (isP1) { incrementCombo(); ai.history.PUNCH = (ai.history.PUNCH || 0) + 1; }
-  const rule = COMBAT_RULES.PUNCH;
-  if (isP1) playerScore += 1; else aiScore += 1;
-  let damage = rule.damage * damageMultiplier;
-  const counterReady = isP1 && player.counterUntil > performance.now();
-  if (counterReady) { damage = rule.counterDamage * damageMultiplier; player.counterUntil = 0; setCombatPhase('COUNTER', 'COUNTER! +' + Math.ceil(damage), 'text-amber-300'); }
-  // Combo damage multiplier: +5% per combo hit (caps at+50%)
-  if (isP1 && combo > 1) damage *= 1 + Math.min(combo - 1, 10) * 0.05;
+  const mods = fighterMods(attackerNum);
+  const side = isP1 ? 0.7 : 0.3;
+  if (isP1) ai.history[type] = (ai.history[type] || 0) + 1;   // the adaptive AI studies attempts, not just hits
 
-  if (target === player && Math.abs(player.dodgeZ) > 0.75 && !target.isGuarding) {
+  if (Math.abs(target.dodgeZ || 0) > 0.75 && !target.isGuarding) {
     setCombatPhase('DODGE', 'DODGED!', 'text-lime-300');
     addFloatingText('DODGED!', 0.3, 0.4, '#a3e635');
     updateHud(); checkWinLoss(); return;
   }
+
   if (target.isGuarding) {
-    damage = 0; target.ki = Math.min(100, target.ki + rule.guardKi); sound.playBlock();
+    target.ki = Math.min(100, target.ki + rule.guardKi); sound.playBlock();
     setPortraitState(isP1 ? 'p2' : 'p1', 'guard', 520);
-    create3DHitSparks(target.x, 1.7, 0, 0x93c5fd, 8);
-    addFloatingText('BLOCKED', isP1 ? 0.7 : 0.3, 0.4, '#38bdf8');
-    if (target === player) { player.counterUntil = performance.now() + 700; setCombatPhase('BLOCK', 'BLOCKED — COUNTER READY', 'text-indigo-400'); }
-    else setCombatPhase('BLOCK', 'AI BLOCKED', 'text-indigo-400');
-    triggerHitStop(3);
-  } else {
-    setCombatPhase('CONTACT', '-' + Math.ceil(damage) + ' HP', 'text-emerald-400');
-    sound.playHit(); target.hp = Math.max(0, target.hp - damage);
-    setPortraitState(isP1 ? 'p2' : 'p1', 'hit');
-    create3DHitSparks(target.x, 1.7, 0, attackerChar.colorHex, 14);
-    addFloatingText('-' + Math.ceil(damage), isP1 ? 0.7 : 0.3, 0.4, '#f43f5e');
-    target.hitFlash = 1; applyKnockback(target, isP1, 0.18); triggerHitStop(4); flashScreen(0.08);
-    speedLinesActive = true; speedLinesTimer = 8;
-  }
-  updateHud(); checkWinLoss();
-}
-
-function executePlayerKick(attackerNum, damageMultiplier = 1.0) {
-  if (!beginCombatAttack(attackerNum, 'KICK')) return;
-  sound.playKick();
-  const isP1 = attackerNum === 1;
-  const target = isP1 ? ai : player;
-  const attackerChar = isP1 ? selectedP1Char : selectedP2Char;
-  if (isP1) { incrementCombo(); ai.history.KICK = (ai.history.KICK || 0) + 1; }
-  const rule = COMBAT_RULES.KICK;
-  if (isP1) playerScore += 2; else aiScore += 2;
-  let damage = rule.damage * damageMultiplier;
-  const counterReady = isP1 && player.counterUntil > performance.now();
-  if (counterReady) { damage = rule.counterDamage * damageMultiplier; player.counterUntil = 0; setCombatPhase('COUNTER', 'COUNTER KICK! +' + Math.ceil(damage), 'text-amber-300'); }
-  // Combo damage multiplier: +5% per combo hit (caps at+50%)
-  if (isP1 && combo > 1) damage *= 1 + Math.min(combo - 1, 10) * 0.05;
-
-  if (target === player && Math.abs(player.dodgeZ) > 0.75 && !target.isGuarding) {
-    setCombatPhase('DODGE', 'DODGED!', 'text-lime-300');
-    addFloatingText('DODGED!', 0.3, 0.4, '#a3e635');
+    create3DHitSparks(target.x, 1.7, 0, 0x93c5fd, fx.blockSparks);
+    addFloatingText('BLOCKED', side, 0.4, '#38bdf8');
+    if (hasCounterWindow(isP1 ? 2 : 1)) target.counterUntil = performance.now() + 700;
+    if (target === player) setCombatPhase('BLOCK', 'BLOCKED — COUNTER READY', 'text-indigo-400');
+    else setCombatPhase('BLOCK', selectedGameMode === '1P' ? 'AI BLOCKED' : 'P2 BLOCKED — COUNTER READY', 'text-indigo-400');
+    triggerHitStop(fx.blockStop);
     updateHud(); checkWinLoss(); return;
   }
-  if (target.isGuarding) {
-    damage = 0; target.ki = Math.min(100, target.ki + rule.guardKi); sound.playBlock();
-    setPortraitState(isP1 ? 'p2' : 'p1', 'guard', 520);
-    create3DHitSparks(target.x, 1.7, 0, 0x93c5fd, 10);
-    addFloatingText('BLOCKED', isP1 ? 0.7 : 0.3, 0.4, '#38bdf8');
-    if (target === player) { player.counterUntil = performance.now() + 700; setCombatPhase('BLOCK', 'BLOCKED — COUNTER READY', 'text-indigo-400'); }
-    else setCombatPhase('BLOCK', 'AI BLOCKED', 'text-indigo-400');
-    triggerHitStop(4);
+
+  // ---- the strike lands ----
+  let damage = rule.damage * damageMultiplier * mods.dmg;
+  const isCounter = hasCounterWindow(attackerNum) && (attacker.counterUntil || 0) > performance.now();
+  if (isCounter) { damage = rule.counterDamage * damageMultiplier * mods.dmg; attacker.counterUntil = 0; }
+  if (isP1) {
+    incrementCombo();                                  // only landed hits build a combo
+    if (combo > 1) damage *= 1 + Math.min(combo - 1, 10) * 0.05;   // +5% per combo hit, caps at +50%
+    playerScore += fx.points;
   } else {
-    setCombatPhase('CONTACT', '-' + Math.ceil(damage) + ' KICK!', 'text-emerald-400');
-    sound.playHit(); target.hp = Math.max(0, target.hp - damage);
-    setPortraitState(isP1 ? 'p2' : 'p1', 'hit');
-    create3DHitSparks(target.x, 1.7, 0, attackerChar.colorHex, 20);
-    addFloatingText('-' + Math.ceil(damage) + ' KICK!', isP1 ? 0.7 : 0.3, 0.4, '#10b981');
-    target.hitFlash = 1; applyKnockback(target, isP1, 0.3); triggerHitStop(6); flashScreen(0.14); triggerImpactFrame();
-    speedLinesActive = true; speedLinesTimer = 12;
+    aiScore += fx.points;
+    resetCombo();                                      // getting hit breaks your combo
   }
+  // (The old code announced COUNTER and then instantly overwrote it with CONTACT.)
+  if (isCounter) setCombatPhase('COUNTER', fx.counterText(Math.ceil(damage)), 'text-amber-300');
+  else setCombatPhase('CONTACT', fx.hitText(Math.ceil(damage)), 'text-emerald-400');
+  sound.playHit(); target.hp = Math.max(0, target.hp - damage);
+  gainKi(attacker, fx.kiGain * mods.ki); gainKi(target, fx.kiTaken);   // fighters build meter by fighting
+  setPortraitState(isP1 ? 'p2' : 'p1', 'hit');
+  create3DHitSparks(target.x, 1.7, 0, attackerChar.colorHex, fx.sparks);
+  addFloatingText(fx.floatText(Math.ceil(damage)), side, 0.4, fx.color);
+  target.hitFlash = 1; applyKnockback(target, isP1, rule.knockback); triggerHitStop(rule.hitStop); flashScreen(fx.flash);
+  if (fx.impact) triggerImpactFrame();
+  speedLinesActive = true; speedLinesTimer = fx.lines;
   updateHud(); checkWinLoss();
 }
+
+function executePlayerPunch(attackerNum, damageMultiplier = 1.0) { resolveStrike(attackerNum, 'PUNCH', damageMultiplier); }
+function executePlayerKick(attackerNum, damageMultiplier = 1.0) { resolveStrike(attackerNum, 'KICK', damageMultiplier); }
 
 function executePlayerSuper(attackerNum) {
   if (!beginCombatAttack(attackerNum, 'SUPER')) return;
@@ -128,25 +129,28 @@ function executePlayerSuper(attackerNum) {
   const attacker = isP1 ? player : ai;
   const target = isP1 ? ai : player;
   const attackerChar = isP1 ? selectedP1Char : selectedP2Char;
+  const side = isP1 ? 0.7 : 0.3;
   attacker.ki = 0; sound.playBeam();
   triggerCharacterSuperFX(attackerChar, attacker.x, target.x);
   speedLinesActive = true; speedLinesTimer = 30;
   triggerHitStop(8); flashScreen(0.22); triggerImpactFrame(); triggerSlowMotion(600);
-  let damage = COMBAT_RULES.SUPER.damage;
+  let damage = Math.round(COMBAT_RULES.SUPER.damage * fighterMods(attackerNum).dmg);
 
   if (target.isCrouching) {
     setCombatPhase('DODGE', 'DUCKED THE SUPER!', 'text-lime-300');
-    addFloatingText('DUCKED!', isP1 ? 0.7 : 0.3, 0.4, '#a855f7');
+    addFloatingText('DUCKED!', side, 0.4, '#a855f7');
     damage = 0;
   } else if (target.isGuarding) {
     setCombatPhase('BLOCK', 'SUPER BLOCKED!', 'text-indigo-400');
     damage = 0; target.ki = Math.min(100, target.ki + 15); sound.playBlock();
-    addFloatingText('BLOCKED +15 KI', isP1 ? 0.7 : 0.3, 0.4, '#38bdf8');
-    if (target === player) player.counterUntil = performance.now() + 900;
+    addFloatingText('BLOCKED +15 KI', side, 0.4, '#38bdf8');
+    if (hasCounterWindow(isP1 ? 2 : 1)) target.counterUntil = performance.now() + 900;
   } else {
     setCombatPhase('CONTACT', attackerChar.superName + '! -' + damage, 'text-amber-400');
-    addFloatingText('-' + damage + ' ' + attackerChar.superName + '!', isP1 ? 0.7 : 0.3, 0.4, '#f43f5e');
+    addFloatingText('-' + damage + ' ' + attackerChar.superName + '!', side, 0.4, '#f43f5e');
     target.hitFlash = 1; applyKnockback(target, isP1, 0.5);
+    if (!isP1) resetCombo();
+    if (isP1) playerScore += 3; else aiScore += 3;
   }
   target.hp = Math.max(0, target.hp - damage);
   updateHud(); checkWinLoss();

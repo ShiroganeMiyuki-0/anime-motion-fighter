@@ -124,7 +124,7 @@ function processPose(landmarks) {
   }
   if (chargeConfirmed && now - player.lastGestureTime > 120) {
     player.isCharging = true; player.isGuarding = false; player.isCrouching = false; player.stance = 'CHARGING';
-    player.ki = Math.min(100, player.ki + poseDelta * 0.035);
+    player.ki = Math.min(100, player.ki + poseDelta * 0.035 * fighterMods(1).ki);
     if (now - lastChargeToneAt > 240) { sound.playCharge(); lastChargeToneAt = now; }
     updateHud();
     setCombatPhase('CHARGE', player.ki >= 100 ? 'KI FULL — EXTEND BOTH HANDS' : 'CHARGING KI...', 'text-amber-400');

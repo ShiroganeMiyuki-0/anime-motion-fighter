@@ -11,6 +11,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   await new Promise(r => setTimeout(r, 300));
 
   hideLoading();
+  loadSavedPrefs();
   document.getElementById('landingScreen').classList.remove('hidden');
   initLanding();
 });

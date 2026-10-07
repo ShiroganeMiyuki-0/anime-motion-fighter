@@ -6,7 +6,8 @@ function renderAnimeOverlayFX() {
     fxCtx.strokeStyle = 'rgba(148,163,184,0.4)'; fxCtx.lineWidth = 2;
     fxCtx.beginPath(); fxCtx.moveTo(midX, 0); fxCtx.lineTo(midX, fxCanvas.height); fxCtx.stroke();
   }
-  if (speedLinesActive) {
+  if (speedLinesActive && reducedMotion) { speedLinesTimer--; if (speedLinesTimer <= 0) speedLinesActive = false; }
+  else if (speedLinesActive) {
     fxCtx.strokeStyle = 'rgba(56,189,248,0.2)'; fxCtx.lineWidth = 2;
     const cx = fxCanvas.width / 2, cy = fxCanvas.height / 2;
     for (let i = 0; i < 40; i++) {
@@ -47,8 +48,9 @@ function runFrame(now) {
   }
 
   if (cameraShake > 0) {
-    camera.position.x += (Math.random() - 0.5) * 0.22 * (cameraShake / 8);
-    camera.position.y += (Math.random() - 0.5) * 0.2 * (cameraShake / 8);
+    const shakeScale = reducedMotion ? 0.2 : 1;
+    camera.position.x += (Math.random() - 0.5) * 0.22 * (cameraShake / 8) * shakeScale;
+    camera.position.y += (Math.random() - 0.5) * 0.2 * (cameraShake / 8) * shakeScale;
     cameraShake = Math.max(0, cameraShake - 1);
   }
   updateMainCameraView();
@@ -68,7 +70,8 @@ function runFrame(now) {
 
   renderSceneView();
   renderAnimeOverlayFX();
-  updateAdaptiveAI(delta);
+  // Cap so a backgrounded tab / long stall can't make the AI fire instantly on return.
+  updateAdaptiveAI(Math.min(delta, 100));
 }
 
 let lastTime = performance.now();

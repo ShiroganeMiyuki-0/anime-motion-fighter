@@ -1,14 +1,18 @@
 // ===================== CONSTANTS =====================
 // Production stub — the full observer is in 22-usability-test-mode-test-1.js
-// and excluded from the production bundle.
-const usabilityObserver = typeof usabilityObserver !== 'undefined' ? usabilityObserver : { enabled: false, log() {} };
-if (typeof mountUsabilityPanel === 'undefined') { var mountUsabilityPanel = function() {}; }
+// (merged into this object in dev; excluded from the production bundle).
+// NOTE: the old `const x = typeof x ...` form threw a TDZ ReferenceError and
+// redeclared the const in module 22, which killed the whole game on load.
+var usabilityObserver = { enabled: false, recording: false, events: [], startedAt: 0, log() {} };
+var mountUsabilityPanel = function() {};
+// Each fighter has a small stat trait so the roster is more than a palette swap.
+//   dmg: damage multiplier   cd: attack-cooldown multiplier (lower = faster)   ki: ki-gain multiplier
 const CHARACTERS = {
-  GONE:    { id:'GONE',    name:'G.ONE',    superName:'HART PLASMA BEAM',  colorHex:0x00e5ff, auraHex:0x38bdf8, desc:'Cyber HART Core Suit',     hairStyle:'HELMET' },
-  KAKAROT: { id:'KAKAROT', name:'KAKAROT',  superName:'KAMEHA BLAST',     colorHex:0xeab308, auraHex:0xfef08a, desc:'Saiyan Martial Artist',    hairStyle:'SPIKY' },
-  SHINOBI: { id:'SHINOBI', name:'SHINOBI',  superName:'RASENGAN SPHERE',  colorHex:0xf97316, auraHex:0xfdba74, desc:'Ninja Master',             hairStyle:'NINJA' },
-  VOIDLORD:{ id:'VOIDLORD',name:'VOID LORD', superName:'HOLLOW PURPLE',   colorHex:0xa855f7, auraHex:0xc084fc, desc:'Infinity Sorcerer',        hairStyle:'WHITE' },
-  RAONE:   { id:'RAONE',   name:'RA.ONE',   superName:'HART OVERDRIVE',   colorHex:0xff0055, auraHex:0xf43f5e, desc:'Dark Cyber Demon',         hairStyle:'HORNS' }
+  GONE:    { id:'GONE',    name:'G.ONE',    superName:'HART PLASMA BEAM',  colorHex:0x00e5ff, auraHex:0x38bdf8, desc:'Cyber HART Core Suit',  hairStyle:'HELMET', trait:'Balanced',    mods:{ dmg:1.00, cd:1.00, ki:1.00 } },
+  KAKAROT: { id:'KAKAROT', name:'KAKAROT',  superName:'KAMEHA BLAST',     colorHex:0xeab308, auraHex:0xfef08a, desc:'Saiyan Martial Artist', hairStyle:'SPIKY',  trait:'Power +12%',  mods:{ dmg:1.12, cd:1.10, ki:1.00 } },
+  SHINOBI: { id:'SHINOBI', name:'SHINOBI',  superName:'RASENGAN SPHERE',  colorHex:0xf97316, auraHex:0xfdba74, desc:'Ninja Master',          hairStyle:'NINJA',  trait:'Speed +18%',  mods:{ dmg:0.92, cd:0.82, ki:1.10 } },
+  VOIDLORD:{ id:'VOIDLORD',name:'VOID LORD', superName:'HOLLOW PURPLE',   colorHex:0xa855f7, auraHex:0xc084fc, desc:'Infinity Sorcerer',     hairStyle:'WHITE',  trait:'Ki Master',   mods:{ dmg:1.00, cd:1.00, ki:1.35 } },
+  RAONE:   { id:'RAONE',   name:'RA.ONE',   superName:'HART OVERDRIVE',   colorHex:0xff0055, auraHex:0xf43f5e, desc:'Dark Cyber Demon',      hairStyle:'HORNS',  trait:'Heavy Hitter',mods:{ dmg:1.18, cd:1.18, ki:0.90 } }
 };
 
 const COMBAT_RULES = {

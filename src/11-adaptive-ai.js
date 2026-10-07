@@ -1,7 +1,8 @@
 // ===================== ADAPTIVE AI =====================
 function queueAIAction(action) {
   ai.pendingAction = action;
-  ai.telegraphTimer = 900;
+  // The wind-up shrinks as the threat tier rises (900ms at tier 1 -> 460ms at tier 5), so late tiers demand real reads.
+  ai.telegraphTimer = Math.max(460, 900 - (gameLevel - 1) * 110);
   ai.stance = 'CHARGING'; ai.isCharging = true;
   updateGestureStatus(action === 'SUPER' ? 'INCOMING SUPER — GUARD!' : 'ATTACK INCOMING', 'text-rose-400');
 }
@@ -47,7 +48,7 @@ function updateAdaptiveAI(delta) {
   if (player.stance === 'CHARGING' && rand < 0.7 + aggro) { queueAIAction('PUNCH'); return; }
   if (favMove === 'KICK' && rand < 0.35 + aggro) { ai.stance = 'CROUCH'; ai.isCrouching = true; ai.isGuarding = false; ai.isCharging = false; setTimeout(() => { ai.isCrouching = false; if (ai.stance === 'CROUCH') ai.stance = 'IDLE'; }, 500); return; }
   if (favMove === 'PUNCH' && rand < 0.3 + aggro) { ai.stance = 'GUARD'; ai.isGuarding = true; ai.isCrouching = false; ai.isCharging = false; setTimeout(() => { ai.isGuarding = false; if (ai.stance === 'GUARD') ai.stance = 'IDLE'; }, 450); return; }
-  if (rand < 0.35) { ai.stance = 'CHARGING'; ai.ki = Math.min(100, ai.ki + 15); updateHud(); return; }
+  if (rand < 0.35) { ai.stance = 'CHARGING'; gainKi(ai, 15 * fighterMods(2).ki); updateHud(); return; }
   if (rand < 0.68) { queueAIAction('PUNCH'); return; }
   queueAIAction('KICK');
 }

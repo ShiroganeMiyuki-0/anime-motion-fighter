@@ -268,8 +268,11 @@ function landDualCamHit(fromP1, weapon) {
   const attackerChar = fromP1 ? selectedP1Char : selectedP2Char;
   const rule = COMBAT_RULES[attackType];
   const points = weapon === 'FOOT' ? 2 : 1;
+  const attackerMods = fighterMods(fromP1 ? 1 : 2);
   if (fromP1) playerScore += points; else aiScore += points;
-  sound.playHit(); target.hp = Math.max(0, target.hp - rule.damage);
+  sound.playHit(); target.hp = Math.max(0, target.hp - rule.damage * attackerMods.dmg);
+  gainKi(fromP1 ? player : ai, (weapon === 'FOOT' ? 6 : 4) * attackerMods.ki); gainKi(target, weapon === 'FOOT' ? 3 : 2);
+  if (!fromP1) resetCombo();
   setPortraitState(fromP1 ? 'p2' : 'p1', 'hit');
   target.hitFlash = 1; applyKnockback(target, fromP1, rule.knockback);
   create3DHitSparks(target.x, 1.6, 0, attackerChar.colorHex, weapon === 'FOOT' ? 16 : 10);
